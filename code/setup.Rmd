@@ -1211,18 +1211,30 @@ df.football.out <- subset(df.football, movement == "out",
                                     "fee"))
 
 # Rename columns in df.football.out to match the column names in df.football.in 
-names(df.football.out)[names(df.football.out) == "dealing_country"] <- "country2"
-names(df.football.out)[names(df.football.out) == "dealing_country_lat"] <- "country_lat2"
-names(df.football.out)[names(df.football.out) == "dealing_country_lon"] <- "country_lon2"
-names(df.football.out)[names(df.football.out) == "dealing_club"] <- "club2"
-names(df.football.out)[names(df.football.out) == "club"] <- "dealing_club"
-names(df.football.out)[names(df.football.out) == "country"] <- "dealing_country"
-names(df.football.out)[names(df.football.out) == "country_lat"] <- "dealing_country_lat"
-names(df.football.out)[names(df.football.out) == "country_lon"] <- "dealing_country_lon"
-names(df.football.out)[names(df.football.out) == "country2"] <- "country"
-names(df.football.out)[names(df.football.out) == "country_lat2"] <- "country_lat"
-names(df.football.out)[names(df.football.out) == "country_lon2"] <- "country_lon"
-names(df.football.out)[names(df.football.out) == "club2"] <- "club"
+names(df.football.out)[names(df.football.out) == 
+                         "dealing_country"] <- "country2"
+names(df.football.out)[names(df.football.out) == 
+                         "dealing_country_lat"] <- "country_lat2"
+names(df.football.out)[names(df.football.out) == 
+                         "dealing_country_lon"] <- "country_lon2"
+names(df.football.out)[names(df.football.out) == 
+                         "dealing_club"] <- "club2"
+names(df.football.out)[names(df.football.out) == 
+                         "club"] <- "dealing_club"
+names(df.football.out)[names(df.football.out) == 
+                         "country"] <- "dealing_country"
+names(df.football.out)[names(df.football.out) == 
+                         "country_lat"] <- "dealing_country_lat"
+names(df.football.out)[names(df.football.out) == 
+                         "country_lon"] <- "dealing_country_lon"
+names(df.football.out)[names(df.football.out) == 
+                         "country2"] <- "country"
+names(df.football.out)[names(df.football.out) == 
+                         "country_lat2"] <- "country_lat"
+names(df.football.out)[names(df.football.out) == 
+                         "country_lon2"] <- "country_lon"
+names(df.football.out)[names(df.football.out) == 
+                         "club2"] <- "club"
 
 # Change movement column values to "in" ----------------------------------------
 df.football.out$movement <- "in"
@@ -1276,6 +1288,16 @@ df.football <- df.football[-c(41075, 410751, 29427, 29326, 292671, 785201,
                               785211, 1381061, 42285, 785651, 138104, 138105, 
                               423831, 530921), ]
 
+# Create index column with club, dealing_club, name, and season columns --------
+df.football$index <- paste(df.football$name, df.football$club, 
+                           df.football$season, df.football$movement, sep = " ")
+
+# Identify and remove duplicated rows based on the 'index' column --------------
+df.football <- df.football[!duplicated(df.football$index), ]
+
+# Drop the 'index' column from the dataframe -----------------------------------
+df.football$index <- NULL
+
 # Save df.football -------------------------------------------------------------
 save(df.football, file = "football-transfers.RData")
 write.csv(df.football, 
@@ -1286,7 +1308,7 @@ write.csv(df.football,
 
 ```{r   }
 # Load previously saved df.football --------------------------------------------
-load("football-transfers.RData")
+load(paste0(dirname(getwd()), "/data/football-transfers.RData"))
 ```
 
 
