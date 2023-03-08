@@ -37,7 +37,15 @@ df.filtered.data <- na.omit(football.transfer)
 df.filtered.data <- rownames_to_column(df.filtered.data, var = "index")
 df.filtered.data <- subset(df.filtered.data, select = -index)
 dt.filtered.data <- data.table(df.filtered.data)
-dt.filtered.data <- subset(dt.filtered.data, name != 'Brito')
+#dt.filtered.data <- subset(dt.filtered.data, name != 'Brito')
+
+# create a vector of names to delete
+names_to_delete <- c('Brito', 'Sousa', 'Alcides', 'Ferro', 'Cinfães', 'Ismaily',
+                     'Maia', 'Dnipro')
+
+
+# remove rows with the specified names
+dt.filtered.data <- dt.filtered.data[!(dt.filtered.data$name %in% names_to_delete), ]
 
 
 # Filter the rows of column "movement" that only contain the string "in"--------
@@ -60,7 +68,7 @@ dt.filtered.data <- subset(dt.filtered.data, name != 'Brito')
 ```{r }
 # Optional if you want to filter something
 
-dt.filtered.data <- dt.filtered.data[season >= 2015 & season <= 2019]
+dt.filtered.data <- dt.filtered.data[season >= 2010 & season <= 2021]
 
 ```
 
@@ -68,6 +76,7 @@ dt.filtered.data <- dt.filtered.data[season >= 2015 & season <= 2019]
 # Build a bipartite graph of the in/out movement data of clubs and player(name)
 # Actor rot und movie war blau --> actor war true und movie war False
 # Bei uns club somit rot und player blau
+# Projection 1 --> false --> name and Projection 2 --> true --> club
 
 all.club <- dt.filtered.data[, list(name = unique(club),
                                        type=TRUE)]
@@ -100,34 +109,38 @@ plot(g.transfers, layout = layout_with_fr, vertex.color = V(g.transfers)$color,
 
 ```{r }
 # Projection 1 edges = 2 name sind verbunden wenn gleichen spieler haben
+
 # check for bipartiteness
-#i <- which(V(g.transfers)$type[match(ends(g.transfers,1:ecount(g.transfers))[,1],V(g.transfers)$name)] == #V(g.transfers)$type[match(ends(g.transfers,1:ecount(g.transfers))[,2],V(g.transfers)$name)])
-#ends(g.transfers, i)
+i <- which(V(g.transfers)$type[match(ends(g.transfers,1:ecount(g.transfers))[,1],V(g.transfers)$name)] == V(g.transfers)$type[match(ends(g.transfers,1:ecount(g.transfers))[,2],V(g.transfers)$name)])
+ends(g.transfers, i)
 
-#if (!is_bipartite(g.transfers)) {
+if (!is_bipartite(g.transfers)) {
   # remove non-bipartite edges
-#  g.transfers <- delete_edges(g.transfers,
-#                              which(!is.bipartite(g.transfers)))
-#}
+  g.transfers <- delete_edges(g.transfers,
+                              which(!is.bipartite(g.transfers)))
+}
 
-g.clubs <- bipartite.projection(g.transfers)$proj1
+g.player <- bipartite.projection(g.transfers)$proj1
 plot(g.clubs, layout = layout_with_fr, vertex.color = V(g.clubs)$color, 
      vertex.label = NA, vertex.size = 1, margin = -0.1)
 summary(g.clubs)
+
 ```
 
 ```{r }
 # Projection 2 edges = 2 clubs sind verbunden wenn in beiden der gleiche spieler gespielt hat
-g.player <- bipartite.projection(g.transfers)$proj2
-plot(g.player, layout = layout_with_fr, vertex.color = V(g.player)$color, 
+g.clubs <- bipartite.projection(g.transfers)$proj2
+plot(g.clubs, layout = layout_with_fr, vertex.color = V(g.player)$color, 
      vertex.label = NA, vertex.size = 1, margin = -0.1)
-summary(g.player)
+summary(g.clubs)
 ```
 
 
 
 ```{r }
-chosen.club <- "FK Ufa"
+chosen.club <- "FSV Zwickau"
+
+#chosen.club <- "Borussia Dortmund"
 
 # Create a subgraph consisting of the chosen movie and its neighbors
 # ------------------------------------------------------------------------------
@@ -142,9 +155,35 @@ g.club.neighbors <- induced_subgraph(g.transfers, all.vertices.neighbors)
 
 # Plot the subgraph with the chosen movie in red as focal node and neighbors blue
 # ------------------------------------------------------------------------------
-plot(g.transfers, vertex.color = ifelse(V(g.transfers)$name == 
+plot(g.club.neighbors, vertex.color = ifelse(V(g.club.neighbors)$name == 
                                               chosen.club, "red", "blue"), 
-     vertex.size = 2, vertex.label = NA)
+     vertex.size = 2)
+summary(g.club.neighbors)
+```
+```{r }
+#chosen.club <- "Eintracht Frankfurt"
+
+chosen.club <- "FSV Zwickau"
+
+#chosen.club <- "Borussia Dortmund"
+
+# Create a subgraph consisting of the chosen movie and its neighbors
+# ------------------------------------------------------------------------------
+club.neighbors <- neighbors(g.clubs, chosen.club)
+all.vertices.neighbors <- c(V(g.clubs)[club.neighbors], 
+                            V(g.clubs)[chosen.club])
+
+
+# Transforming movie.neighbors in a graph object
+# ------------------------------------------------------------------------------
+g.club.neighbors <- induced_subgraph(g.clubs, all.vertices.neighbors)
+
+# Plot the subgraph with the chosen movie in red as focal node and neighbors blue
+# ------------------------------------------------------------------------------
+plot(g.club.neighbors, vertex.color = ifelse(V(g.club.neighbors)$name == 
+                                               chosen.club, "red", "blue"), 
+     vertex.size = 2)
+summary(g.club.neighbors)
 ```
 
 ```{r }
@@ -158,12 +197,27 @@ print(unique.total.clubs)
 
 ```
 
-```{r }
-# List and print the transfers in of "FK Ufa"----------------------------
 
-l.club.player <- as.list(dt.filtered.data$name[dt.filtered.data$club == 
-                                                      "FK Ufa"])
-print(l.club.player)
+```{r }
+# List and print the transfers in of chosen.club--------------------------------
+
+# Get the names of the players who transferred to or from the chosen club
+club.player <- unique(dt.filtered.data$name[dt.filtered.data$club == 
+                                                      chosen.club])
+print(club.player)
+
+# Get the club names, movements, year of the players
+player.clubs <- dt.filtered.data$club[dt.filtered.data$name %in% club.player]
+player.movement <- dt.filtered.data$movement[dt.filtered.data$name %in% club.player]
+player.year <- dt.filtered.data$season[dt.filtered.data$name %in% club.player]
+
+
+# Combine the player names and club names into a data frame
+player.df <- data.frame(Name = l.club.player, Club = player.clubs,
+                        Movement_Transfer = player.movement, 
+                        Year = player.year)
+
+print(player.df)
 ```
 
 ```{r }
@@ -192,41 +246,41 @@ print(dt.filtered.data.per.club.year)
 # Plot the degree distribution for our g.transfers.in network and calculate 
 # the statisitcs
 
-degree.subgraph <- degree(g.transfers)
-hist(degree(g.transfers), 
-     main = "Degree Distribution of the original g.movies.subgraph", 
-     xlab = "Degree", ylab = "Number of movies", col = "red", border = "white")
+degree.subgraph <- degree(g.clubs)
+hist(degree(g.clubs), 
+     main = "Degree Distribution of the original g.clubs.subgraph", 
+     xlab = "Degree", ylab = "Number of clubs", col = "red", border = "white")
 
 cat("\n Statistical summary of the original graph:\n")
-mean(degree(g.transfers))
-transitivity(g.transfers, type = "average")
-average.path.length(g.transfers)
-summary(g.transfers)
+mean(degree(g.clubs))
+transitivity(g.clubs, type = "average")
+average.path.length(g.clubs)
+summary(g.clubs)
 ```
 
 ```{r }
 # Get the unipartite projection 2 of clubs which show two clubs are connected
 # to each other if they have at least one player in common-----------------------
 
-g.clubs.proj.2 <- bipartite.projection(g.transfers)$proj2
+#g.clubs.proj.2 <- bipartite.projection(g.transfers)$proj2
 
 # Test if th graph contains movie with a degree of 0----------------------------
 
 
-degrees.proj.2 <- degree(g.clubs.proj.2)
-isolated.clubs <- which(degrees.proj.2 == 0)
+degrees.proj.2 <- degree(g.clubs)
+#isolated.clubs <- which(g.clubs == 0)
 
 cat("\nNumber of movies with a degree of zero in the projection 1 graph\n")
-print(isolated.clubs)
+#print(isolated.clubs)
 
 # Create and plot the subgraph with only connected movies including the summary
 # ------------------------------------------------------------------------------
 
-g.clubs.subgraph <- induced.subgraph(g.clubs.proj.2, 
-                                      which(degree(g.clubs.proj.2) > 0))
+g.clubs.subgraph <- induced.subgraph(g.clubs, 
+                                      which(degree(g.clubs) > 0))
 
 plot(g.clubs.subgraph, layout = layout_with_fr, 
-     vertex.color = V(g.transfers)$color, vertex.label = NA, 
+     vertex.color = V(g.clubs.subgraph)$color, vertex.label = NA, 
      vertex.size = 1, margin = -0.1, edge.width = 0.01)
 summary(g.clubs.subgraph)
 
