@@ -1,0 +1,338 @@
+---
+title: "preprocceing_data"
+output: html_document
+date: "2023-03-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r }
+# Load librarys-----------------------------------------------------------------
+library(tidyverse)
+library(igraph)
+library(data.table)
+library(ggplot2)
+library(tibble)
+```
+
+```{r }
+# Load data---------------------------------------------------------------------
+football.transfer <- read.csv(file = 'data/football-transfers.csv')
+
+```
+
+```{r }
+# Filtering NA's out of columns market_value & fee------------------------------
+
+df.filtered.data <- na.omit(football.transfer)
+df.filtered.data <- rownames_to_column(df.filtered.data, var = "index")
+df.filtered.data <- subset(df.filtered.data, select = -index)
+dt.filtered.data <- data.table(df.filtered.data)
+
+
+# Filter the rows of column "movement" that only contain the string "in"--------
+# Player transfer from dealing_club to club
+
+df.filtered.data.in <- subset(df.filtered.data, movement == "in")
+df.filtered.data.in <- rownames_to_column(df.filtered.data.in, var = "index")
+df.filtered.data.in <- subset(df.filtered.data.in, select = -index)
+dt.filtered.data.in <- data.table(df.filtered.data.in)
+
+# Filter the rows of column "movement" that only contain the string "out"-------
+# Player transfer from club to dealing club
+
+df.filtered.data.out <- subset(df.filtered.data, movement == "out")
+df.filtered.data.out <- rownames_to_column(df.filtered.data.out, var = "index")
+df.filtered.data.out <- subset(df.filtered.data.out, select = -index)
+dt.filtered.data.out <- data.table(df.filtered.data.out)
+```
+
+```{r }
+# Optional if you want to filter something
+
+dt.filtered.data.in <- dt.filtered.data.in[season >= 2010 & season <= 2019]
+
+```
+
+```{r }
+# Build a bipartite graph of the in movement data/ from dealing club to club----
+# Actor rot und movie war blau --> actor war true und movie war False
+# Bei uns club somit rot und player blau
+
+all.club <- dt.filtered.data.in[, list(name = unique(club),
+                                       type=TRUE)]
+all.name <- dt.filtered.data.in[, list(name = unique(name), type=FALSE)]
+
+all.vertices <- rbind(all.club, all.name)
+g.transfers.in <- graph.data.frame(dt.filtered.data.in[, list(club, 
+                                                              name)], 
+                                   directed=FALSE, vertices=all.vertices)
+```
+
+```{r }
+# Plot the bipartite graph------------------------------------------------------
+V(g.transfers.in)$color <- ifelse(V(g.transfers.in)$type == 1, "red", "blue")
+
+plot(g.transfers.in, layout = layout.bipartite(g.transfers.in), vertex.label = NA)
+
+plot(g.transfers.in, layout = layout_with_fr, vertex.color = V(g.transfers.in)$color,
+     vertex.label = NA, vertex.size = 1, margin = -0.1)
+
+```
+
+```{r }
+# Projection 1 edges = 2 name sind verbunden wenn gleichen spieler haben
+g.clubs <- bipartite.projection(g.transfers.in)$proj1
+plot(g.clubs, layout = layout_with_fr, vertex.color = V(g.clubs)$color, 
+     vertex.label = NA, vertex.size = 1, margin = -0.1)
+summary(g.clubs)
+```
+
+```{r }
+# Projection 2 edges = 2 clubs sind verbunden wenn in beiden der gleiche spieler gespielt hat
+g.player <- bipartite.projection(g.transfers.in)$proj2
+plot(g.player, layout = layout_with_fr, vertex.color = V(g.player)$color, 
+     vertex.label = NA, vertex.size = 1, margin = -0.1)
+summary(g.player)
+```
+
+```{r }
+
+```
+
+```{r }
+
+```
+
+```{r }
+chosen.club <- "FK Ufa"
+
+# Create a subgraph consisting of the chosen movie and its neighbors
+# ------------------------------------------------------------------------------
+club.neighbors <- neighbors(g.transfers.in, chosen.club)
+all.vertices.neighbors <- c(V(g.transfers.in)[club.neighbors], 
+                            V(g.transfers.in)[chosen.club])
+
+
+# Transforming movie.neighbors in a graph object
+# ------------------------------------------------------------------------------
+g.movie.neighbors <- induced_subgraph(g.transfers.in, all.vertices.neighbors)
+
+# Plot the subgraph with the chosen movie in red as focal node and neighbors blue
+# ------------------------------------------------------------------------------
+plot(g.transfers.in, vertex.color = ifelse(V(g.transfers.in)$name == 
+                                              chosen.club, "red", "blue"), 
+     vertex.size = 2, vertex.label = NA)
+```
+
+```{r }
+# Explorative Analyse
+
+# Actors that participated on the top 50 most popular movies from 2010-2019
+# decade by number of votes-----------------------------------------------------
+
+# Filter the unique movies from 2010-2019 and select the top 50 by number 
+# of votes----------------------------------------------------------------------
+
+dt.filtered.data.in.unique <- unique(dt.filtered.data.in, by = "movie")
+dt.actors.top.50.movies <- dt.filtered.data.in.unique[year >= 2010 & 
+                                                            year <= 2019][order(
+                                                              -votes)][1:50, 
+                                                                       .(movie)]
+
+
+# Join the top 50 movies with the movie-actor data to get all details back------
+
+dt.top.50.actors.decade <- dt.movie.actor[movie %in% 
+                                            dt.actors.top.50.movies$movie]
+dt.all.movies.selected.actors <- dt.movie.actor[actor %in% 
+                                                  dt.top.50.actors.decade$actor]
+```
+
+```{r }
+# Number of clubs
+unique.total.clubs <- NROW(unique(dt.filtered.data.in$club))
+print(unique.total.clubs)
+
+```
+
+```{r }
+# List and print the transfers in of "FK Ufa"----------------------------
+
+l.club.player <- as.list(dt.filtered.data.in$name[dt.filtered.data.in$club == 
+                                                      "FK Ufa"])
+print(l.club.player)
+```
+
+```{r }
+# Group by year and count the number of transfers per year
+dt.filtered.data.in.per.year <- dt.filtered.data.in[, .(n_transfers = .N), 
+                                       by = season][order(season)]
+print(dt.filtered.data.in.per.year)
+
+# Group by club and count the number of transfers
+dt.filtered.data.in.per.club <- dt.filtered.data.in[, .(n_transfers = .N), 
+                                       by = club][order(-n_transfers)]
+print(dt.filtered.data.in.per.club)
+
+# Group by club and year and count the number of transfers
+dt.filtered.data.in.per.club.year <- dt.filtered.data.in[, .(n_transfers = .N), 
+                                                         by = .(club, 
+                                                                season)][order(
+                                                                  season)]
+
+print(dt.filtered.data.in.per.club.year)
+
+```
+
+```{r }
+# Degree Distribution
+# Plot the degree distribution for our g.transfers.in network and calculate 
+# the statisitcs
+
+degree.subgraph <- degree(g.transfers.in)
+hist(degree(g.transfers.in), 
+     main = "Degree Distribution of the original g.movies.subgraph", 
+     xlab = "Degree", ylab = "Number of movies", col = "red", border = "white")
+
+cat("\n Statistical summary of the original graph:\n")
+mean(degree(g.transfers.in))
+transitivity(g.transfers.in, type = "average")
+average.path.length(g.transfers.in)
+summary(g.transfers.in)
+```
+
+```{r }
+# Get the unipartite projection 2 of clubs which show two clubs are connected
+# to each other if they have at least one player in common-----------------------
+
+g.clubs.proj.2 <- bipartite.projection(g.transfers.in)$proj2
+
+# Test if th graph contains movie with a degree of 0----------------------------
+
+
+degrees.proj.2 <- degree(g.clubs.proj.2)
+isolated.clubs <- which(degrees.proj.2 == 0)
+
+cat("\nNumber of movies with a degree of zero in the projection 1 graph\n")
+print(isolated.clubs)
+
+# Create and plot the subgraph with only connected movies including the summary
+# ------------------------------------------------------------------------------
+
+g.clubs.subgraph <- induced.subgraph(g.clubs.proj.2, 
+                                      which(degree(g.clubs.proj.2) > 0))
+
+plot(g.clubs.subgraph, layout = layout_with_fr, 
+     vertex.color = V(g.transfers.in)$color, vertex.label = NA, 
+     vertex.size = 1, margin = -0.1, edge.width = 0.01)
+summary(g.clubs.subgraph)
+
+
+degree.centrality <- degree(g.clubs.subgraph, mode = "all")
+
+closeness <- closeness(g.clubs.subgraph)
+betweenness <- round(betweenness(g.clubs.subgraph), 4)
+eigenvector <- round(evcent(g.clubs.subgraph)$vector, 4)
+
+# Create and print a dataframe with centrality measures-------------------------
+
+df.centrality.measures.clubs <- data.frame(degree = degree.centrality,
+                                            closeness = closeness, 
+                                            betweenness = betweenness, 
+                                            eigenvector = eigenvector)
+
+print(df.centrality.measures.clubs)
+
+```
+
+```{r }
+
+# Normalized centrality measures for better interpretations---------------------
+
+normalized.degree <- round(degree(g.clubs.subgraph, normalized = TRUE), 4)
+normalized.closeness <- round(closeness(g.clubs.subgraph, normalize = TRUE), 4)
+normalized.betweenness <- round(betweenness(g.clubs.subgraph, 
+                                            normalize = TRUE), 4)
+
+
+# Degree centrality-------------------------------------------------------------
+
+df.top.degree.centrality <- data.frame(degree = 
+                                         head(sort(degree.centrality, 
+                                                   decreasing = TRUE), 20), 
+                                       normalized_degree = 
+                                         head(sort(normalized.degree, 
+                                                   decreasing = TRUE), 20))
+
+print("Top 20 movies with highest degree centrality:\n")
+print(df.top.degree.centrality)
+
+# Closeness centrality----------------------------------------------------------
+
+df.top.closeness <- data.frame(closeness = 
+                                 head(sort(closeness, 
+                                           decreasing = TRUE), 20),
+                               normalized_closeness = 
+                                 head(sort(normalized.closeness, 
+                                           decreasing = TRUE), 20))
+
+print("Top 20 movies with highest closeness centrality:\n")
+print(df.top.closeness)
+
+# Betweenness centrality--------------------------------------------------------
+
+df.top.betweenness <- data.frame(betweenness = 
+                                   head(sort(betweenness, 
+                                             decreasing = TRUE), 20),
+                                 normalized_betweenness = 
+                                   head(sort(normalized.betweenness, 
+                                             decreasing = TRUE), 20))
+print("Top 20 movies with highest betweenness centrality:\n")
+print(df.top.betweenness)
+
+# Eigenvector centrality--------------------------------------------------------
+
+df.top.eigenvector <- data.frame( eigenvector = 
+                                    head(sort(eigenvector, 
+                                              decreasing = TRUE), 20))
+print("Top 20 movies with highest eigenvector centrality:\n")
+print(df.top.eigenvector)
+```
+
+```{r }
+```
+
+```{r }
+```
+
+```{r }
+```
+
+```{r }
+```
+
+```{r }
+```
