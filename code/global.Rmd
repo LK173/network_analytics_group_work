@@ -1,0 +1,1232 @@
+---
+title: "Global"
+author: "Florian Preiss (54385), Leon Kahring (55584), Lilian Felmayer (54750), Maximilian Jagiello (53525), Hanna Baeuchle (53279)"
+date: "17:03/2023"
+output: html_documment
+---
+
+-   Course:         Network Analytics
+-   Supervisor:     Prof. Rodrigo Belo
+-   Assignment:     Group Project Shiny App
+-   Topic:          Exploring European Football Club Transfers since 1992
+
+\newpage
+
+# Import packages
+
+```{r   }
+library(data.table)
+library(ggplot2)
+library(igraph)
+library(dplyr)
+```
+
+# Load data
+
+```{r   }
+# Load previously saved df.football --------------------------------------------
+load(paste0(dirname(getwd()), "/data/football-transfers.RData"))
+df.football <- read.csv("../data/football-transfers.csv")
+```
+
+```{r   }
+club.select <- "Borussia Dortmund"
+
+df.graph <- subset(df.football, club == club.select, select = c("dealing_club", "club", "name", "fee"))
+
+# Order the subset by fee in descending order and select the top 10 rows
+df.graph <- head(df.graph[order(-df.graph$fee), ], 10)
+
+g <- graph_from_data_frame(df.graph, directed = TRUE)
+
+# Set edge labels to player name and fee
+edge_labels <- paste(df.graph$name, "\n$", format(df.graph$fee, big.mark = ",", scientific = FALSE), sep = "")
+E(g)$label <- edge_labels
+
+# Set plot options
+options(repr.plot.width=5, repr.plot.height=1)  # adjust plot size
+
+# Plot the graph with edge labels
+plot(g, edge.label = E(g)$label, edge.label.color = "black", edge.label.cex = 0.8)
+```
+
+```{r   }
+# Create the performance column as described earlier
+df.football$performance <- with(df.football, 
+                                ifelse(fee == 0, market_value / (1 * age), 
+                                       market_value / fee / age))
+
+
+# Filter for top performers
+# df.performers <- head(df.football[order(-df.football$performance), ], 10)
+
+# Create a new dataframe with only the relevant columns
+# df.graph <- subset(df.performers, select=c("club", "dealing_club", "name"))
+
+
+# Filter for top performers based on age and performance score, and keep only top 20
+# top_performers <- df.football[df.football$age < 25 & df.football$performance > 1000, ]
+# top_performers <- top_performers[order(-top_performers$performance), ][1:10, ]
+
+favorite <- "Eintracht Frankfurt"
+
+
+# Filter for top performers based on age and performance score, and keep only top 20
+top_performers <- df.football[df.football$club == favorite, ]
+top_performers <- top_performers[order(-top_performers$performance), ][1:7, ]
+
+# Create a new dataframe with only the relevant columns
+df.graph <- subset(top_performers, select=c("club", "dealing_club", "name"))
+
+# Group transfers by player to trace back to their original club
+origins <- group_by(top_performers, name) %>%
+  summarize(orig_club = first(dealing_club))
+
+# Merge the origins dataframe with the top_performers dataframe to get the original club for each transfer
+top_performers <- merge(top_performers, origins, by="name")
+
+# Filter for transfers where the original club is not the same as the current club, and where the edge is directed towards favorite club
+filtered_transfers <- subset(top_performers, club == favorite & orig_club != favorite)
+
+# Create a new dataframe with only the relevant columns
+df.filtered <- subset(filtered_transfers, select=c("orig_club", "club", "name"))
+
+# Create the graph
+g <- graph_from_data_frame(df.filtered, directed = TRUE)
+
+# Plot the graph
+plot(g,
+     edge.arrow.size=0.5,
+     vertex.size=4,
+     vertex.color="lightblue",
+     vertex.label.color="black",
+     vertex.label.cex=0.8,
+     vertex.label.dist=1.8,
+     edge.label = E(g)$name,
+     layout=layout_with_fr)
+
+```
+
+```{r   }
+favorite <- "Borussia Dortmund"
+
+# Filter for top performers based on age and performance score, and keep only top 20
+top_performers <- df.football[df.football$club != favorite & df.football$age < 25 & df.football$performance > 1000, ]
+
+# Get the transfers to Borussia Dortmund
+to_dortmund <- df.football[df.football$club == favorite & df.football$age < 25 & df.football$performance > 1000, ]
+
+# Get the players that have transferred to Borussia Dortmund from the top performers
+filtered_transfers <- subset(df.football, name %in% to_dortmund$dealing_club)
+
+# Create a new dataframe with only the relevant columns
+df.filtered <- subset(filtered_transfers, select=c("club", "dealing_club", "name"))
+
+# Create the graph
+g <- graph_from_data_frame(df.filtered, directed = TRUE)
+
+# Plot the graph
+plot(g,
+     edge.arrow.size=0.5,
+     vertex.size=4,
+     vertex.color="lightblue",
+     vertex.label.color="black",
+     vertex.label.cex=0.8,
+     vertex.label.dist=1.5,
+     edge.label = E(g)$name,
+     layout=layout_with_fr)
+
+
+```
+
+
+```{r   }
+# Create the new column "performance"
+df.football$performance <- df.football$age * 0.2 + df.football$market_value * 0.6 + df.football$fee * 0.2
+
+# Identify top performance players
+top_players <- subset(df.football, age < 25 & market_value > 1000000 & fee < 500000)
+
+df.graph <- subset(df.football, select=c("club", "dealing_club", "name"))
+
+
+g <- graph_from_data_frame(df.graph, directed = TRUE)
+
+sub_g <- subgraph(g, V(g)[name %in% unique(df.graph$name[df.graph$club == "Borussia Dortmund" | df.graph$dealing_club == "Borussia Dortmund"])])
+plot(sub_g)
+
+
+g2 <- delete.vertices(g, which(degree(g) < 1000))
+layout <- layout_with_fr(g2)
+plot(g2, layout=layout, vertex.size=4, vertex.color="lightblue", edge.arrow.size=0.5, edge.curved=0.2)
+
+
+
+aggregated_data <- aggregate(fee ~ name + club + dealing_club, data=df.football, FUN=sum)
+g2 <- graph_from_data_frame(aggregated_data, directed=TRUE, vertices=NULL)
+layout <- layout_with_fr(g2)
+plot(g2, layout=layout, vertex.size=4, vertex.color="lightblue", edge.arrow.size=0.5, edge.width=E(g2)$fee/1000000, edge.curved=0.2)
+
+
+g2 <- subset(g, name == "Laurent Montoya")
+layout <- layout_with_fr(g2)
+plot(g2, layout=layout, vertex.size=4, vertex.color="lightblue", edge.arrow.size=0.5, edge.curved=0.2)
+
+
+summary(g)
+```
+
+
+```{r   }
+df.network <- data.frame(from = df.football$dealing_club, 
+                         to = df.football$club, player = df.football$name)
+
+g <- graph_from_data_frame(df.network, directed = TRUE)
+
+plot(g, vertex.label = V(g)$name, edge.arrow.size = 0.5, layout = layout.fruchterman.reingold)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Create a data frame with the edges and their weights -------------------------
+edges <- data.frame(
+  from = ifelse(df.football$movement == "in", df.football$dealing_club, df.football$club),
+  to = ifelse(df.football$movement == "in", df.football$club, df.football$dealing_club),
+  weight = df.football$fee
+)
+
+# Create a graph object from the edges data frame
+g <- graph_from_data_frame(edges, directed = TRUE)
+
+# Add attributes to the nodes
+V(g)$label <- V(g)$name
+V(g)$type <- ifelse(V(g)$name %in% df.football$club, "club", "country")
+
+# Add attributes to the edges
+E(g)$label <- E(g)$weight
+E(g)$width <- E(g)$weight/max(E(g)$weight)
+
+# Plot the graph
+plot(g, layout = layout_with_fr, vertex.label.cex = 0.8, edge.arrow.size = 0.5)
+```
+
+```{r   }
+# Get a list of the top 10 clubs by transfer value
+top.clubs <- head(sort(tapply(df.football$fee, df.football$club, sum), decreasing = TRUE), 10)
+
+# Filter the data to include only transfers involving the top clubs
+df.top.clubs <- df.football[df.football$club %in% names(top.clubs) | df.football$dealing_club %in% names(top.clubs),]
+
+# Create a data frame with the edges and their weights
+edges <- data.frame(
+  from = ifelse(df.top.clubs$movement == "in", df.top.clubs$dealing_club, df.top.clubs$club),
+  to = ifelse(df.top.clubs$movement == "in", df.top.clubs$club, df.top.clubs$dealing_club),
+  weight = df.top.clubs$fee
+)
+
+# Create a graph object from the edges data frame
+g <- graph_from_data_frame(edges, directed = TRUE)
+
+# Add attributes to the nodes
+V(g)$label <- V(g)$name
+V(g)$type <- ifelse(V(g)$name %in% df.top.clubs$club, "club", "country")
+
+# Add attributes to the edges
+E(g)$label <- E(g)$weight
+E(g)$width <- E(g)$weight/max(E(g)$weight)
+
+# Plot the graph
+plot(g, layout = layout_with_fr, vertex.label.cex = 0.8, edge.arrow.size = 0.5)
+```
+
+```{r   }
+
+df.football$fee[is.na(df.football$fee)] <- 0
+
+# Filter the data to include only transfers from 2020
+df.football.2020 <- df.football[df.football$season >= 2010 & df.football$season <= 2019,]
+
+# Get a list of the top 10 clubs by transfer value
+top.clubs.2020 <- head(sort(tapply(df.football.2020$fee, df.football.2020$club, sum), decreasing = TRUE), 10)
+
+# Filter the data to include only transfers involving the top clubs
+df.top.clubs.2020 <- df.football.2020[df.football.2020$club %in% names(top.clubs.2020) | df.football.2020$dealing_club %in% names(top.clubs.2020),]
+
+sum(is.na(df.football$fee))
+sum(is.na(df.football$club))
+sum(is.na(df.football$dealing_club))
+sum(is.na(df.football$movement))
+
+
+# Create a data frame with the edges and their weights
+edges <- data.frame(
+  from = ifelse(df.top.clubs.2020$movement == "in", df.top.clubs.2020$dealing_club, df.top.clubs.2020$club),
+  to = ifelse(df.top.clubs.2020$movement == "in", df.top.clubs.2020$club, df.top.clubs.2020$dealing_club),
+  weight = df.top.clubs.2021$fee
+)
+
+# Create a graph object from the edges data frame
+g <- graph_from_data_frame(edges, directed = TRUE)
+
+# Add attributes to the nodes
+V(g)$label <- V(g)$name
+V(g)$type <- ifelse(V(g)$name %in% df.top.clubs.2020$club, "club", "country")
+
+# Add attributes to the edges
+E(g)$label <- E(g)$weight
+E(g)$width <- E(g)$weight/max(E(g)$weight)
+
+# Plot the graph
+plot(g, layout = layout_with_fr, vertex.label.cex = 0.8, edge.arrow.size = 0.5)
+
+df.football
+```
+
+```{r   }
+# Add city column for German clubs ---------------------------------------------
+df.germany$city <- NA   
+df.germany$city <- ifelse(df.germany$club_name == "1.FC Saarbrücken", 
+                               "Saarbrücken", df.germany$city)      
+df.germany$city <- ifelse(df.germany$club_name == "Bayer 05 Uerdingen", 
+                               "Uerdingen", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "VfL Bochum", 
+                               "Bochum", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "Karlsruher SC", 
+                               "Karlsruhe", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "FC Schalke 04", 
+                               "Gelsenkirchen", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "Eintracht Frankfurt", 
+                               "Frankfurt", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "Borussia Dortmund", 
+                               "Dortmund", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "1.FC Nuremberg", 
+                               "Nuremberg", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "1.FC Kaiserslautern", 
+                               "Kaiserslautern", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "VfB Leipzig (- 2004)", 
+                               "Leipzig", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "MSV Duisburg", 
+                               "Duisburg", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "FC St. Pauli", 
+                               "Hamburg", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "FC Hansa Rostock", 
+                               "Rostock", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "Arminia Bielefeld", 
+                               "Bielefeld", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "Hertha BSC", 
+                               "Berlin", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "SSV Ulm 1846", 
+                               "Ulm", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "Hannover 96", 
+                               "Hannover", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "Alemannia Aachen", 
+                               "Aachen", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "FC Augsburg", 
+                               "Augsburg", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "Eintracht Braunschweig", 
+                               "Braunschweig", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "FC Ingolstadt 04", 
+                               "Ingolstadt", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "RB Leipzig", 
+                               "Leipzig", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "SG Wattenscheid 09", 
+                               "Bochum", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "SV Werder Bremen", 
+                               "Bremen", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "VfB Stuttgart", 
+                               "Stuttgart", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "Hamburger SV", 
+                               "Hamburg", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "Bayern Munich", 
+                               "Munich", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == 
+                                 "Borussia Mönchengladbach", 
+                               "Mönchengladbach", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "Bayer 04 Leverkusen", 
+                               "Leverkusen", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "1. FC Köln", 
+                               "Köln", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "SG Dynamo Dresden", 
+                               "Dresden", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "SC Freiburg", 
+                               "Freiburg", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "TSV 1860 Munich", 
+                               "Munich", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "KFC Uerdingen 05", 
+                               "Uerdingen", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "Fortuna Düsseldorf", 
+                               "Düsseldorf", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "VfL Wolfsburg", 
+                               "Wolfsburg", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "SpVgg Unterhaching", 
+                               "Munich", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "FC Energie Cottbus", 
+                               "Cottbus", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "1.FSV Mainz 05", 
+                               "Mainz", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "TSG 1899 Hoffenheim", 
+                               "Hoffenheim", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "SpVgg Greuther Fürth", 
+                               "Fürth", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "SC Paderborn 07", 
+                               "Paderborn", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "SV Darmstadt 98", 
+                               "Darmstadt", df.germany$city)
+df.germany$city <- ifelse(df.germany$club_name == "1.FC Union Berlin", 
+                               "Berlin", df.germany$city)
+
+# Add city column for spanish clubs --------------------------------------------
+df.spain$city <- NA   
+df.spain$city <- ifelse(df.spain$club_name == "Real Sociedad", 
+                        "San Sebastián", df.spain$city)      
+df.spain$city <- ifelse(df.spain$club_name == "Real Oviedo", 
+                        "Oviedo", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Albacete Balompié", 
+                        "Albacete ", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Celta de Vigo", 
+                        "Vigo", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "RCD Espanyol Barcelona", 
+                        "Barcelona", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "CD Tenerife", 
+                        "Tenerife", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Real Madrid", 
+                        "Madrid", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Rayo Vallecano", 
+                        "Madrid", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "CD Logroñés", 
+                        "Logroño", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "FC Barcelona", 
+                        "Barcelona", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "UE Lleida", 
+                        "Lleida", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "SD Compostela", 
+                        "Santiago de Compostela", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "CP Mérida", 
+                        "Mérida", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Hércules CF", 
+                        "Alicante", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "RCD Mallorca", 
+                        "Palma de Mallorca", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Villarreal CF", 
+                        "Villarreal", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "CD Numancia", 
+                        "Soria", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Recreativo Huelva", 
+                        "Huelva", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Getafe CF", 
+                        "Getafe", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Gimnàstic de Tarragona", 
+                        "Tarragona", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Xerez CD", 
+                        "Jerez de la Frontera", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Elche CF", 
+                        "Elche", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Córdoba CF", 
+                        "Córdoba", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Girona FC", 
+                        "Girona", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Cádiz CF", 
+                        "Cádiz", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Sporting Gijón", 
+                        "Gijón", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Valencia CF", 
+                        "Valencia", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Deportivo de La Coruña", 
+                        "A Coruña", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Atlético de Madrid", 
+                        "Madrid", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Athletic Bilbao", 
+                        "Bilbao", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Sevilla FC", 
+                        "Sevilla", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "CA Osasuna", 
+                        "Pamplona ", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Real Zaragoza", 
+                        "Zaragoza", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Racing Santander", 
+                        "Santander", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Real Valladolid CF", 
+                        "Valladolid", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Real Betis Balompié", 
+                        "Sevilla", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "UD Salamanca", 
+                        "Salamanca", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "CF Extremadura (- 2010)", 
+                        "Almendralejo", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Deportivo Alavés", 
+                        "Vitoria-Gasteiz", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Málaga CF", 
+                        "Málaga", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "UD Las Palmas", 
+                        "Las Palmas", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Real Murcia CF", 
+                        "Murcia", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Levante UD", 
+                        "Valencia", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "UD Almería", 
+                        "Almería", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "Granada CF", 
+                        "Granada", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "SD Eibar", 
+                        "Eibar", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "CD Leganés", 
+                        "Leganés", df.spain$city)
+df.spain$city <- ifelse(df.spain$club_name == "SD Huesca", 
+                        "Huesca", df.spain$city)
+
+# Add city column for italian clubs --------------------------------------------
+df.italy$city <- NA   
+df.italy$city <- ifelse(df.italy$club_name == "AC Fiorentina", 
+                        "Florence", df.italy$city)      
+df.italy$city <- ifelse(df.italy$club_name == "Cagliari Calcio", 
+                        "Cagliari", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Atalanta BC", 
+                        "Bergamo", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Milan AC", 
+                        "Milan", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "SS Lazio", 
+                        "Rome", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "FC Internazionale", 
+                        "Milan", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "AC Reggiana", 
+                        "Reggio Emilia", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "US Lecce", 
+                        "Lecce", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Vicenza Calcio", 
+                        "Vicenza", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Hellas Verona", 
+                        "Verona", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "US Salernitana", 
+                        "Salerno", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Como Calcio", 
+                        "Como", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "AC Siena", 
+                        "Siena", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "FC Messina Peloro", 
+                        "Messina", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Treviso FBC 1993", 
+                        "Treviso", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Catania SSD", 
+                        "Catania", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Novara Calcio 1908", 
+                        "Novara", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Carpi FC 1909", 
+                        "Carpi", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Benevento Calcio", 
+                        "Benevento", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "SPAL", 
+                        "Ferrara", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "US Salernitana 1919", 
+                        "Salerno", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "SSC Napoli", 
+                        "Naples", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Ancona Calcio", 
+                        "Ancona", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Foggia Calcio", 
+                        "Foggia", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Torino Calcio", 
+                        "Turin", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Genoa 1893", 
+                        "Genoa", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Brescia Calcio", 
+                        "Brescia", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "US Cremonese", 
+                        "Cremona", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Calcio Padova", 
+                        "Padua", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Bologna FC 1909", 
+                        "Bologna", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Empoli FC", 
+                        "Empoli", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Reggina Calcio", 
+                        "Reggio Calabria", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Modena FC", 
+                        "Modena", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Parma FC", 
+                        "Parma", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "ACF Fiorentina", 
+                        "Florence", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Ascoli Calcio 1898", 
+                        "Ascoli Piceno", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Genoa CFC", 
+                        "Genoa", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "US Sassuolo", 
+                        "Sassuolo", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Frosinone Calcio", 
+                        "Frosinone", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "SPAL 2013", 
+                        "Ferrara", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Spezia Calcio", 
+                        "La Spezia", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Venezia FC", 
+                        "Venice", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Delfino Pescara 1936", 
+                        "Pescara", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "UC Sampdoria", 
+                        "Genoa", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Juventus FC", 
+                        "Turin", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Udinese Calcio", 
+                        "Udine", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "AC Parma", 
+                        "Parma", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "AS Roma", 
+                        "Rome", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Piacenza FC", 
+                        "Piacenza", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "AS Bari", 
+                        "Bari", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "AC Perugia", 
+                        "Perugia", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "AC Venezia 1907", 
+                        "Venice", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Chievo Verona", 
+                        "Verona", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "AC Milan", 
+                        "Milan", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "US Palermo", 
+                        "Palermo", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "AS Livorno", 
+                        "Livorno", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Torino FC", 
+                        "Turin", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "AC Cesena", 
+                        "Cesena", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Inter Milan", 
+                        "Milan", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "FC Crotone", 
+                        "Crotone", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "Parma Calcio 1913", 
+                        "Parma", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "FC Empoli", 
+                        "Empoli", df.italy$city)
+df.italy$city <- ifelse(df.italy$club_name == "AC Monza", 
+                        "Monza", df.italy$city)
+
+# Add city column for english clubs --------------------------------------------
+df.england2$city <- NA   
+df.england2$city <- ifelse(df.england2$club_name == "Leicester City", 
+                           "Leicester", df.england2$city)      
+df.england2$city <- ifelse(df.england2$club_name == "Wolverhampton Wanderers", 
+                           "Wolverhampton", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "West Ham United", 
+                           "London", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Wigan Athletic", 
+                           "Wigan", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Reading FC", 
+                           "Reading", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Stoke City", 
+                           "Stoke-on-Trent", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Cardiff City", 
+                           "Cardiff", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Preston North End", 
+                           "Preston", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Rotherham United", 
+                           "Rotherham", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Burnley FC", 
+                           "Burnley", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Gillingham FC", 
+                           "Gillingham", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Queens Park Rangers", 
+                           "London", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Crystal Palace", 
+                           "London", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Southampton FC", 
+                           "Southampton", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Luton Town", 
+                           "Luton", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Birmingham City", 
+                           "Birmingham", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Southend United", 
+                           "Southend-on-Sea", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Barnsley FC", 
+                           "Barnsley", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Scunthorpe United", 
+                           "Scunthorpe", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Bristol City", 
+                           "Bristol", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Doncaster Rovers", 
+                           "Doncaster", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Newcastle United", 
+                           "Newcastle", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Portsmouth FC", 
+                           "Portsmouth", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Blackburn Rovers", 
+                           "Blackburn", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "AFC Bournemouth", 
+                           "Bournemouth", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Brentford FC", 
+                           "Brentford", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Milton Keynes Dons", 
+                           "Milton Keynes", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Burton Albion", 
+                           "Burton upon Trent", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Leeds United", 
+                           "Leeds", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Sunderland AFC", 
+                           "Sunderland", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Ipswich Town", 
+                           "Ipswich", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Sheffield United", 
+                           "Sheffield", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Millwall FC", 
+                           "London", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Coventry City", 
+                           "Coventry", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Nottingham Forest", 
+                           "West Bridgford", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Watford FC", 
+                           "Watford", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Crewe Alexandra", 
+                           "Crewe", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Derby County", 
+                           "Derby", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Plymouth Argyle", 
+                           "Plymouth", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Brighton & Hove Albion", 
+                           "Brighton and Hove", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Sheffield Wednesday", 
+                           "Sheffield", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Norwich City", 
+                           "Norwich", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Hull City", 
+                           "Hull", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "West Bromwich Albion", 
+                           "West Bromwich", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Colchester United", 
+                           "Colchester", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Charlton Athletic", 
+                           "Charlton", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Blackpool FC", 
+                           "Blackpool", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Swansea City", 
+                           "Swansea", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Peterborough United", 
+                           "Peterborough", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Middlesbrough FC", 
+                           "Middlesbrough", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Bolton Wanderers", 
+                           "Bolton", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Huddersfield Town", 
+                           "Huddersfield", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Yeovil Town", 
+                           "Yeovil", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Fulham FC", 
+                           "London", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Aston Villa", 
+                           "Aston", df.england2$city)
+df.england2$city <- ifelse(df.england2$club_name == "Wycombe Wanderers", 
+                           "High Wycombe", df.england2$city)
+
+# Add city column for dutch clubs ----------------------------------------------
+df.netherlands$city <- NA   
+df.netherlands$city <- ifelse(df.netherlands$club_name == "Fortuna Sittard", 
+                              "Sittard", df.netherlands$city)      
+df.netherlands$city <- ifelse(df.netherlands$club_name == "Go Ahead Eagles", 
+                              "Deventer", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "Ajax Amsterdam", 
+                              "Amsterdam", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "Sparta Rotterdam", 
+                              "Rotterdam", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "Willem II Tilburg", 
+                              "Tilburg", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "MVV Maastricht", 
+                              "Maastricht", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "Twente Enschede FC", 
+                              "Enschede", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "Feyenoord Rotterdam",
+                              "Rotterdam", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "FC Utrecht", 
+                              "Utrecht", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "NAC Breda", 
+                              "Breda", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "SC Heerenveen", 
+                              "Heerenveen", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == 
+                                "De Graafschap Doetinchem", 
+                              "Doetinchem", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "RBC Roosendaal", 
+                              "Roosendaal", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "Excelsior Rotterdam",
+                              "Rotterdam", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "Heracles Almelo", 
+                              "Almelo", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == 
+                                "SC Cambuur-Leeuwarden", 
+                              "Leeuwarden", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "FC Emmen", 
+                              "Emmen", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "Dordrecht'90", 
+                              "Dordrecht", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "FC Volendam", 
+                              "Volendam", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "Vitesse Arnhem", 
+                              "Arnhem", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "FC Den Bosch", 
+                              "Den Bosch", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == 
+                                "Cambuur-Leeuwarden bvo", 
+                              "Leeuwarden", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "PSV Eindhoven", 
+                              "Eindhoven", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "RKC Waalwijk", 
+                              "Waalwijk", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "FC Groningen", 
+                              "Groningen", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "Roda JC Kerkrade", 
+                              "Kerkrade", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "VVV-Venlo", 
+                              "Venlo", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "NEC Nijmegen", 
+                              "Nijmegen", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "AZ Alkmaar", 
+                              "Alkmaar", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "FC Zwolle", 
+                              "Zwolle", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "ADO Den Haag", 
+                              "The Hague", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "PEC Zwolle", 
+                              "Zwolle", df.netherlands$city)
+df.netherlands$city <- ifelse(df.netherlands$club_name == "FC Dordrecht", 
+                              "Dordrecht", df.netherlands$city)
+
+# Add city column for portuguese clubs -----------------------------------------
+df.portugal$city <- NA   
+df.portugal$city <- ifelse(df.portugal$club_name == "FC Porto", 
+                           "Porto", df.portugal$city)      
+df.portugal$city <- ifelse(df.portugal$club_name == "Sporting CP", 
+                           "Lisbon", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "CS Marítimo", 
+                           "Funchal", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "CF Os Belenenses", 
+                           "Lisbon", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "Gil Vicente FC", 
+                           "Barcelos", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "Vitória Guimarães SC", 
+                           "Guimarães", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "GD Estoril Praia", 
+                           "Estoril", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "SC Salgueiros", 
+                           "Porto", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "SC Espinho", 
+                           "Espinho", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "Vitória Setúbal FC", 
+                           "Setúbal", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "CF União Madeira", 
+                           "Funchal", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "Leça FC", 
+                           "Leça da Palmeira", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == 
+                             "SC Campomaiorense (- 2001)", 
+                           "Campo Maior", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "Académica Coimbra", 
+                           "Coimbra", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "FC Alverca", 
+                           "Alverca do Ribatejo", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "Desportivo Aves (- 2020)", 
+                           "Vila das Aves", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "Moreirense FC", 
+                           "Moreira de Cónegos", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "Naval 1º de Maio", 
+                           "Figueira da Foz", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "CD Trofense", 
+                           "Trofa", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "Portimonense SC", 
+                           "Portimão", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "FC Arouca", 
+                           "Arouca", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "Belenenses SAD", 
+                           "Lisbon", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "Casa Pia AC", 
+                           "Lisbon", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "SL Benfica", 
+                           "Lisbon", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "Boavista FC", 
+                           "Porto", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "SC Farense", 
+                           "Faro", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "SC Beira-Mar", 
+                           "Aveiro", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "FC Paços de Ferreira", 
+                           "Paços de Ferreira", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "SC Braga", 
+                           "Braga", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "FC Famalicão", 
+                           "Vila Nova de Famalicão", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "FC Tirsense", 
+                           "Santo Tirso", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "GD Chaves", 
+                           "Chaves", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == 
+                             "Clube Futebol Estrela da Amadora", 
+                           "Amadora", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "União de Leiria", 
+                           "Leiria", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "CA Felgueiras", 
+                           "Felgueiras", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "Rio Ave FC", 
+                           "Vila do Conde", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "Varzim SC", 
+                           "Póvoa de Varzim", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "CD Santa Clara", 
+                           "Ponta Delgada", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "CD Nacional", 
+                           "Funchal", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "FC Penafiel", 
+                           "Penafiel", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "Leixões SC", 
+                           "Matosinhos", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "SC Olhanense", 
+                           "Olhão", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "CD Feirense", 
+                           "Santa Maria da Feira", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "CD Tondela", 
+                           "Tondela", df.portugal$city)
+df.portugal$city <- ifelse(df.portugal$club_name == "FC Vizela", 
+                           "Vizela", df.portugal$city)
+
+# Add city column for french clubs ---------------------------------------------
+df.france$city <- NA   
+df.france$city <- ifelse(df.france$club_name == "AC Le Havre", 
+                         "Le Havre", df.france$city)      
+df.france$city <- ifelse(df.france$club_name == 
+                           "Union Sportive Valenciennes-Anzin Arrondissement",
+                         "Valenciennes", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "SM Caen", 
+                         "Caen", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "Nîmes Olympique", 
+                         "Nîmes", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "LOSC Lille", 
+                         "Lille", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "Olympique Lyon", 
+                         "Lyon", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "FC Nantes", 
+                         "Nantes", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "Montpellier HSC", 
+                         "Montpellier", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "RC Lens", 
+                         "Lens", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "FC Sochaux-Montbéliard", 
+                         "Montbéliard", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "FC Girondins Bordeaux", 
+                         "Bordeaux", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "RC Strasbourg Alsace", 
+                         "Strasbourg", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "AS Saint-Étienne", 
+                         "Saint-Étienne", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "Paris Saint-Germain", 
+                         "Paris", df.france$city)
+df.france$city <- ifelse(df.france$club_name == 
+                           "Sporting Club de Toulon et du Var", 
+                         "Toulon", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "FC Toulouse", 
+                         "Toulouse", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "FC Metz", 
+                         "Metz", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "AJ Auxerre", 
+                         "Auxerre", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "Olympique Marseille", 
+                         "Marseille", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "AS Monaco", 
+                         "Monaco", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "Angers SCO", 
+                         "Angers", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "FC Martigues", 
+                         "Martigues", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "AS Cannes", 
+                         "Cannes", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "SC Bastia", 
+                         "Bastia", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "OGC Nice", 
+                         "Nice", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "Stade Rennais FC", 
+                         "Stade Rennes", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "FC Gueugnon", 
+                         "Gueugnon", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "EA Guingamp", 
+                         "Guingamp", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "AS Nancy-Lorraine", 
+                         "Nancy", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "LB Châteauroux", 
+                         "Châteauroux", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "FC Lorient", 
+                         "Lorient", df.france$city)
+df.france$city <- ifelse(df.france$club_name == 
+                           "Association Troyes Aube Champagne", 
+                         "Troyes", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "CS Sedan-Ardennes", 
+                         "Sedan", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "ESTAC Troyes", 
+                         "Troyes", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "AC Ajaccio", 
+                         "Ajaccio", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "Le Mans Union Club 72", 
+                         "Le Mans", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "FC Istres Ouest Provence", 
+                         "Istres", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "Valenciennes FC", 
+                         "Valenciennes", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "Grenoble Foot 38", 
+                         "Grenoble", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "US Boulogne", 
+                         "Boulogne-sur-Mer", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "Athlétic Club Arlésien", 
+                         "Arles", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "Stade Brestois 29", 
+                         "Brest", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "FC Évian Thonon Gaillard",
+                         "Thonon-les-Bains", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "Dijon FCO", 
+                         "Dijon", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "Stade Reims", 
+                         "Reims", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "GFC Ajaccio", 
+                         "Ajaccio", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "Amiens SC", 
+                         "Amiens", df.france$city)
+df.france$city <- ifelse(df.france$club_name == "Clermont Foot 63", 
+                         "Clermont-Ferrand", df.france$city)
+
+# Add city column for english clubs --------------------------------------------
+df.england$city <- NA   
+df.england$city <- ifelse(df.england$club_name == "Middlesbrough FC", 
+                          "Middlesbrough", df.england$city)      
+df.england$city <- ifelse(df.england$club_name == "Oldham Athletic", 
+                          "Oldham", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Sheffield Wednesday", 
+                          "Sheffield", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Coventry City", 
+                          "Coventry", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Crystal Palace", 
+                          "London", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Ipswich Town", 
+                          "Ipswich", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Chelsea FC", 
+                          "London", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Leeds United", 
+                          "Leeds", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Manchester City", 
+                          "Manchester", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Blackburn Rovers", 
+                          "Blackburn", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Liverpool FC", 
+                          "Liverpool", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Newcastle United", 
+                          "Newcastle", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Swindon Town", 
+                          "Swindon", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Bolton Wanderers", 
+                          "Bolton", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Derby County", 
+                          "Derby", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Charlton Athletic", 
+                          "London", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Watford FC", 
+                          "Watford", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "West Bromwich Albion", 
+                          "West Bromwich", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Portsmouth FC", 
+                          "Portsmouth", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Wigan Athletic", 
+                          "Wigan", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Stoke City", 
+                          "Stoke-on-Trent", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Burnley FC", 
+                          "Burnley", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Swansea City", 
+                          "Swansea", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "AFC Bournemouth", 
+                          "Bournemouth", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Huddersfield Town", 
+                          "Huddersfield", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Norwich City", 
+                          "Norwich", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Queens Park Rangers", 
+                          "London", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Wimbledon FC", 
+                          "London", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Manchester United", 
+                          "Manchester", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Nottingham Forest", 
+                          "West Bridgford", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Arsenal FC", 
+                          "London", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Aston Villa", 
+                          "Aston", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Sheffield United", 
+                          "Sheffield", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Southampton FC", 
+                          "Southampton", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Tottenham Hotspur", 
+                          "London", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Everton FC", 
+                          "Liverpool", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "West Ham United", 
+                          "London", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Leicester City", 
+                          "Leicester", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Sunderland AFC", 
+                          "Sunderland", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Barnsley FC", 
+                          "Barnsley", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Bradford City", 
+                          "Bradford", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Fulham FC", 
+                          "London", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Birmingham City", 
+                          "Birmingham", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Wolverhampton Wanderers",
+                          "Wolverhampton", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Reading FC", 
+                          "Reading", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Hull City", 
+                          "Hull", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Blackpool FC", 
+                          "Blackpool", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Cardiff City", 
+                          "Cardiff", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Brighton & Hove Albion",  
+                          "Brighton and Hove", df.england$city)
+df.england$city <- ifelse(df.england$club_name == "Brentford FC", 
+                          "Brentford", df.england$city)
+
+# Add city column for russian clubs --------------------------------------------
+df.russia$city <- NA   
+df.russia$city <- ifelse(df.russia$club_name == "Spartak Moscow", 
+                         "Moscow", df.russia$city)      
+df.russia$city <- ifelse(df.russia$club_name == "Dinamo Moscow", 
+                         "Moscow", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Lokomotiv Moscow", 
+                         "Moscow", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Торпедо-Лужники Москва", 
+                         "Moscow", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "CSKA Moscow", 
+                         "Moscow", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Lokomotiv Nizhniy Novgorod", 
+                         "Nizhny Novgorod", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Zhemchuzhina Sochi", 
+                         "Sochi", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Ocean Nakhodka", 
+                         "Nakhodka", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Пресня Москва", 
+                         "Moscow", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Dinamo-Gazovik Tyumen", 
+                         "Tyumen", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Chernomorets Novorossijsk", 
+                         "Novorossijsk", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Zenit St. Petersburg", 
+                         "Saint Petersburg", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "FK Tyumen", 
+                         "Tyumen", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "ФК Элиста", 
+                         "Elista", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Saturn REN-TV Ramenskoe", 
+                         "Ramenskoye", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Sokol Saratov", 
+                         "Saratov", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Rubin Kazan", 
+                         "Kazan", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "FK Rostov", 
+                         "Rostov-on-Don", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Amkar Perm", 
+                         "Perm", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Kuban Krasnodar (-2018)", 
+                         "Krasnodar", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Tom Tomsk", 
+                         "Tomsk", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Terek Grozny", 
+                         "Grozny", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "FK Khimki", 
+                         "Khimki", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == 
+                           "Volga Nizhniy Novgorod (- 2016)", 
+                         "Nizhny Novgorod", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Mordovia Saransk (-2020)", 
+                         "Saransk", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Arsenal Tula", 
+                         "Tula", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "FK Orenburgs", 
+                         "Orenburgs", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "SKA Khabarovsk", 
+                         "Khabarovsk", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Enisey Krasnoyarsk", 
+                         "Krasnoyarsk", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "FC Sochi", 
+                         "Sochi", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "PFK Tambov", 
+                         "Tambov", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "FC Pari Nizhniy Novgorod", 
+                         "Nizhny Novgorod", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Rotor Volgograd", "
+                         Volgograd", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Энергия-Текстильщик Камышин", 
+                         "Kamyshin", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Spartak Vladikavkaz", 
+                         "Vladikavkaz", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Uralmash Ekaterinburg", 
+                         "Yekaterinburg", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "КАМАЗ-Чаллы Набережные Челны", 
+                         "Naberezhnye Chelny", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Dinamo Stavropol", 
+                         "Stavropol", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Krylya Sovetov Samara", 
+                         "Samara", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Rostselmash Rostov", 
+                         "Rostov-on-Don", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Luch Vladivostok", 
+                         "Vladivostok", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Lada-Togliatti-VAZ Togliatti", 
+                         "Togliatti", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Baltika Kaliningrad", 
+                         "Kaliningrad", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Shinnik Yaroslavl", 
+                         "Yaroslavl", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Факел-Воронеж Воронеж", 
+                         "Voronezh", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Torpedo Moscow", 
+                         "Moscow", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Anzhi Makhachkala ( -2022)", 
+                         "Makhachkala", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Torpedo-ZiL Moscow", 
+                         "Moscow", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Spartak-Alania Vladikavkaz", "
+                         Vladikavkaz", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "FC Moscow", 
+                         "Moscow", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Alania Vladikavkaz", 
+                         "Vladikavkaz", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Spartak Nalchik", 
+                          "Nalchik", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Sibir Novosibirsk (- 2019)", 
+                         "Novosibirsk", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "FK Krasnodar", 
+                         "Krasnodar", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Ural Yekaterinburg", 
+                         "Yekaterinburg", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "FK Ufa", 
+                         "Ufa", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Akhmat Grozny", 
+                         "Grozny", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "FC Tosno (-2018)", 
+                         "Tosno", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "FK Tambov", 
+                         "Tambov", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Dynamo Moscow", 
+                         "Moscow", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "FC Nizhniy Novgorod", 
+                         "Nizhny Novgorod", df.russia$city)
+df.russia$city <- ifelse(df.russia$club_name == "Fakel Voronezh", 
+                         "Voronezh", df.russia$city)
+```
