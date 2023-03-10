@@ -68,7 +68,7 @@ dt.filtered.data <- dt.filtered.data[!(dt.filtered.data$name %in% names_to_delet
 ```{r }
 # Optional if you want to filter something
 
-dt.filtered.data <- dt.filtered.data[season >= 2010 & season <= 2021]
+dt.filtered.data <- dt.filtered.data[season >= 2018 & season <= 2021]
 
 ```
 
@@ -121,16 +121,16 @@ if (!is_bipartite(g.transfers)) {
 }
 
 g.player <- bipartite.projection(g.transfers)$proj1
-plot(g.clubs, layout = layout_with_fr, vertex.color = V(g.clubs)$color, 
+plot(g.player, layout = layout_with_fr, vertex.color = V(g.player)$color, 
      vertex.label = NA, vertex.size = 1, margin = -0.1)
-summary(g.clubs)
+summary(g.player)
 
 ```
 
 ```{r }
 # Projection 2 edges = 2 clubs sind verbunden wenn in beiden der gleiche spieler gespielt hat
 g.clubs <- bipartite.projection(g.transfers)$proj2
-plot(g.clubs, layout = layout_with_fr, vertex.color = V(g.player)$color, 
+plot(g.clubs, layout = layout_with_fr, vertex.color = V(g.clubs)$color, 
      vertex.label = NA, vertex.size = 1, margin = -0.1)
 summary(g.clubs)
 ```
@@ -213,7 +213,7 @@ player.year <- dt.filtered.data$season[dt.filtered.data$name %in% club.player]
 
 
 # Combine the player names and club names into a data frame
-player.df <- data.frame(Name = l.club.player, Club = player.clubs,
+player.df <- data.frame(Name = club.player, Club = player.clubs,
                         Movement_Transfer = player.movement, 
                         Year = player.year)
 
