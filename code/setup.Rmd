@@ -18,7 +18,6 @@ output: html_documment
 library(data.table)
 library(ggplot2)
 library(igraph)
-library(tidyverse)
 ```
 
 # Load data
@@ -1173,21 +1172,19 @@ df.scrape$dealing_club[df.scrape$dealing_club ==
                            "Volga NN"] <- "Volga Nizhniy Novgorod"
 
 # Save df.scrape ---------------------------------------------------------------
-save(df.scrape, file = "football-scrape.RData")
-write.csv(df.scrape, 
-          "C:/Users/flori/Desktop/Business Analytics/S2/T1/Network Analytics/02 Group Project/football-scrape.csv", 
-          row.names=FALSE)
+save(df.scrape, file = "../data/football-scrape.RData")
+write.csv(df.scrape, "../data/football-scrape.csv", row.names = FALSE)
 ```
 
 # Preprocessing
 
 ```{r   }
 # Load previously saved df.scrape ----------------------------------------------
-load("football-scrape.RData")
+load(paste0(dirname(getwd()), "/data/football-scrape.RData"))
 
 
 # Subset dataframe to select only players moving into a club -------------------
-df.football.in <- subset(df.football, movement == "in", 
+df.football.in <- subset(df.scrape, movement == "in", 
                          select = c("season", "window", "country", 
                                     "country_lat", "country_lon", "club", 
                                     "dealing_country", "dealing_country_lat", 
@@ -1201,7 +1198,7 @@ df.football.in$index <- paste(df.football.in$club,
                               df.football.in$season, sep = " ")
 
 # Subset dataframe to select only players moving out of a club -----------------
-df.football.out <- subset(df.football, movement == "out", 
+df.football.out <- subset(df.scrape, movement == "out", 
                          select = c("season", "window", "dealing_country",
                                     "dealing_country_lat", 
                                     "dealing_country_lon", "dealing_club", 
@@ -1246,47 +1243,160 @@ df.football.out$index <- paste(df.football.out$club,
                                df.football.out$season, sep = " ")
 
 # Merge df.football.in and df.football.out into one dataframe ------------------
-df.football.merge <- rbind(df.football.in, df.football.out)
+df.football <- rbind(df.football.in, df.football.out)
 
-# drop duplicates in the "index" column of df.football.merge -------------------
-df.football.merge <- df.football.merge[!duplicated(df.football.merge$index), ]
-
-# Select certain columns and assign it to df.football.merge.in -----------------
-df.football.merge.in <- subset(df.football.merge, 
-                         select = c("season", "window", "country", 
-                                    "country_lat", "country_lon", "club", 
-                                    "movement", "name", "age", "nationality", 
-                                    "position", "market_value", "fee"))
-
-# Select certain columns and assign it to df.football.merge.out ----------------
-df.football.merge.out <- subset(df.football.merge,
-                         select = c("season", "window", "dealing_country",
-                                    "dealing_country_lat", 
-                                    "dealing_country_lon", "dealing_club", 
-                                    "movement", "name", "age", "nationality", 
-                                    "position", "market_value", "fee"))
-
-# Rename columns in df.football.merge.out to match df.football.merge.in --------
-names(df.football.merge.out)[names(df.football.merge.out) == 
-                               "dealing_country"] <- "country"
-names(df.football.merge.out)[names(df.football.merge.out) == 
-                               "dealing_country_lat"] <- "country_lat"
-names(df.football.merge.out)[names(df.football.merge.out) == 
-                               "dealing_country_lon"] <- "country_lon"
-names(df.football.merge.out)[names(df.football.merge.out) == 
-                               "dealing_club"] <- "club"
-
-# Change the values in column "movement" to "out" ------------------------------
-df.football.merge.out$movement <- "out"
-
-# Combine df.football.merge.in and df.football.merge.out -----------------------
-df.football <- rbind(df.football.merge.in, df.football.merge.out)
+# Drop duplicates in the "index" column of df.football -------------------------
+df.football <- df.football[!duplicated(df.football$index), ]
 
 # Delete rows containing false information -------------------------------------
-df.football <- df.football[-c(41075, 410751, 29427, 29326, 292671, 785201,
-                              29445, 531281, 42286, 1380981, 29446, 42282, 
-                              785211, 1381061, 42285, 785651, 138104, 138105, 
-                              423831, 530921), ]
+
+## Jack Grealish
+df.football <- subset(df.football, 
+                      !(name == "Jack Grealish" & 
+                          club == "Manchester United"))
+df.football <- subset(df.football, 
+                      !(name == "Jack Grealish" & 
+                          dealing_club == "Manchester United"))
+df.football$dealing_club <- ifelse(df.football$name == "Jack Grealish" & 
+                                     df.football$club == "Manchester City",
+                                   "Aston Villa",
+                                   df.football$dealing_club)
+df.football$club <- ifelse(df.football$name == "Jack Grealish" & 
+                                     df.football$dealing_club == 
+                             "Manchester City", "Aston Villa", df.football$club)
+
+## Romelu Lukaku
+df.football <- subset(df.football, 
+                      !(name == "Romelu Lukaku" & 
+                          club == "Chrystal Palace"))
+df.football <- subset(df.football, 
+                      !(name == "Romelu Lukaku" & 
+                          dealing_club == "Chrystal Palace"))
+df.football$club <- ifelse(df.football$name == "Romelu Lukaku" & 
+                                     df.football$club == "AC Milan",
+                                   "Inter Milan",
+                                   df.football$club)
+df.football$dealing_club <- ifelse(df.football$name == "Romelu Lukaku" & 
+                                     df.football$dealing_club == 
+                             "AC Milan", "Inter Milan", 
+                             df.football$dealing_club)
+
+## Jadon Sancho
+df.football <- subset(df.football, 
+                      !(name == "Jadon Sancho" & 
+                          club == "Newcastle United"))
+df.football <- subset(df.football, 
+                      !(name == "Jadon Sancho" & 
+                          dealing_club == "Newcastle United"))
+df.football$club <- ifelse(df.football$name == "Jadon Sancho" & 
+                                     df.football$club == "VfL Wolfsburg",
+                                   "Borussia Dortmund",
+                                   df.football$club)
+df.football$dealing_club <- ifelse(df.football$name == "Jadon Sancho" & 
+                                     df.football$dealing_club == 
+                             "VfL Wolfsburg", "Borussia Dortmund", 
+                             df.football$dealing_club)
+
+## Lionel Messi
+df.football <- subset(df.football, 
+                      !(name == "Lionel Messi" & 
+                          club == "AS Monaco"))
+df.football <- subset(df.football, 
+                      !(name == "Lionel Messi" & 
+                          dealing_club == "AS Monaco"))
+df.football$club <- ifelse(df.football$name == "Lionel Messi" & 
+                                     df.football$club == "Real Madrid",
+                                   "FC Barcelona",
+                                   df.football$club)
+df.football$dealing_club <- ifelse(df.football$name == "Lionel Messi" & 
+                                     df.football$dealing_club == 
+                             "Real Madrid", "FC Barcelona", 
+                             df.football$dealing_club)
+
+## Achraf Hakimi
+df.football <- subset(df.football, 
+                      !(name == "Achraf Hakimi" & 
+                          club == "Paris Saint-Germain"))
+df.football <- subset(df.football, 
+                      !(name == "Achraf Hakimi" & 
+                          dealing_club == "Paris Saint-Germain"))
+df.football$club <- ifelse(df.football$name == "Achraf Hakimi" & 
+                                     df.football$club == "AS Monaco",
+                                   "Paris Saint-Germain",
+                                   df.football$club)
+df.football$dealing_club <- ifelse(df.football$name == "Achraf Hakimi" & 
+                                     df.football$dealing_club == 
+                             "AS Monaco", "Paris Saint-Germain", 
+                             df.football$dealing_club)
+
+## Raphaël Varane
+df.football <- subset(df.football, 
+                      !(name == "Raphaël Varane" & 
+                          club == "Manchester United"))
+df.football <- subset(df.football, 
+                      !(name == "Raphaël Varane" & 
+                          dealing_club == "Manchester United"))
+df.football$club <- ifelse(df.football$name == "Raphaël Varane" & 
+                                     df.football$club == "Newcastle United",
+                                   "Manchester United",
+                                   df.football$club)
+df.football$dealing_club <- ifelse(df.football$name == "Raphaël Varane" & 
+                                     df.football$dealing_club == 
+                             "Newcastle United", "Manchester United", 
+                             df.football$dealing_club)
+
+## Gianluigi Donnarumma
+df.football <- subset(df.football, 
+                      !(name == "Gianluigi Donnarumma" & 
+                          club == "Paris Saint-Germain"))
+df.football <- subset(df.football, 
+                      !(name == "Gianluigi Donnarumma" & 
+                          dealing_club == "Paris Saint-Germain"))
+df.football$club <- ifelse(df.football$name == "Gianluigi Donnarumma" & 
+                                     df.football$club == "AS Monaco",
+                                   "Paris Saint-Germain",
+                                   df.football$club)
+df.football$dealing_club <- ifelse(df.football$name == "Gianluigi Donnarumma" & 
+                                     df.football$dealing_club == 
+                             "AS Monaco", "Paris Saint-Germain", 
+                             df.football$dealing_club)
+
+## Dayot Upamecano
+df.football <- subset(df.football, 
+                      !(name == "Dayot Upamecano" & 
+                          club == "RB Leibzig"))
+df.football <- subset(df.football, 
+                      !(name == "Dayot Upamecano" & 
+                          dealing_club == "RB Leibzig"))
+df.football$club <- ifelse(df.football$name == "Dayot Upamecano" & 
+                                     df.football$club == "Borussia Dortmund",
+                                   "RB Leibzig",
+                                   df.football$club)
+df.football$dealing_club <- ifelse(df.football$name == "Dayot Upamecano" & 
+                                     df.football$dealing_club == 
+                             "Borussia Dortmund", "RB Leibzig", 
+                             df.football$dealing_club)
+
+## David Alaba
+df.football <- subset(df.football, 
+                      !(name == "David Alaba" & 
+                          club == "Bayern Munich"))
+df.football <- subset(df.football, 
+                      !(name == "David Alaba" & 
+                          dealing_club == "Bayern Munich"))
+df.football$club <- ifelse(df.football$name == "David Alaba" & 
+                                     df.football$club == "RB Leipzig",
+                                   "Bayern Munich",
+                                   df.football$club)
+df.football$dealing_club <- ifelse(df.football$name == "David Alaba" & 
+                                     df.football$dealing_club == 
+                             "RB Leipzig", "Bayern Munich", 
+                             df.football$dealing_club)
+
+## Aaron Mokoena
+df.football <- subset(df.football, 
+                      !(name == "Aaron Mokoena" & 
+                          club == "Portsmouth"))
 
 # Create index column with club, dealing_club, name, and season columns --------
 df.football$index <- paste(df.football$name, df.football$club, 
@@ -1299,16 +1409,15 @@ df.football <- df.football[!duplicated(df.football$index), ]
 df.football$index <- NULL
 
 # Save df.football -------------------------------------------------------------
-save(df.football, file = "football-transfers.RData")
-write.csv(df.football, 
-          "C:/Users/flori/Desktop/Business Analytics/S2/T1/Network Analytics/02 Group Project/football-transfers.csv", 
-          row.names=FALSE)
+save(df.football, file = "../data/football-transfers.RData")
+write.csv(df.football, "../data/football-transfers.csv", row.names = FALSE)
 ```
 
 
 ```{r   }
 # Load previously saved df.football --------------------------------------------
 load(paste0(dirname(getwd()), "/data/football-transfers.RData"))
+df.football <- read.csv("../data/football-transfers.csv")
 ```
 
 
