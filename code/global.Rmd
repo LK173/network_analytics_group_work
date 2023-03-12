@@ -105,6 +105,8 @@ plot(g,
      edge.label = E(g)$name,
      layout=layout_with_fr)
 
+### --> Favorite graph!!!!!!!!!!!
+
 ```
 
 ```{r   }
@@ -150,10 +152,10 @@ top_players <- subset(df.football, age < 25 & market_value > 1000000 & fee < 500
 df.graph <- subset(df.football, select=c("club", "dealing_club", "name"))
 
 
-g <- graph_from_data_frame(df.graph, directed = TRUE)
+#g <- graph_from_data_frame(df.graph, directed = TRUE)
 
-sub_g <- subgraph(g, V(g)[name %in% unique(df.graph$name[df.graph$club == "Borussia Dortmund" | df.graph$dealing_club == "Borussia Dortmund"])])
-plot(sub_g)
+#sub_g <- subgraph(g, V(g)[name %in% unique(df.graph$name[df.graph$club == "Borussia Dortmund" | df.graph$dealing_club == #"Borussia Dortmund"])])
+#plot(sub_g)
 
 
 g2 <- delete.vertices(g, which(degree(g) < 1000))
@@ -162,18 +164,18 @@ plot(g2, layout=layout, vertex.size=4, vertex.color="lightblue", edge.arrow.size
 
 
 
-aggregated_data <- aggregate(fee ~ name + club + dealing_club, data=df.football, FUN=sum)
-g2 <- graph_from_data_frame(aggregated_data, directed=TRUE, vertices=NULL)
-layout <- layout_with_fr(g2)
-plot(g2, layout=layout, vertex.size=4, vertex.color="lightblue", edge.arrow.size=0.5, edge.width=E(g2)$fee/1000000, edge.curved=0.2)
+#aggregated_data <- aggregate(fee ~ name + club + dealing_club, data=df.football, FUN=sum)
+#g2 <- graph_from_data_frame(aggregated_data, directed=TRUE, vertices=NULL)
+#layout <- layout_with_fr(g2)
+#plot(g2, layout=layout, vertex.size=4, vertex.color="lightblue", edge.arrow.size=0.5, edge.width=E(g2)$fee/1000000, #edge.curved=0.2)
 
 
-g2 <- subset(g, name == "Laurent Montoya")
-layout <- layout_with_fr(g2)
-plot(g2, layout=layout, vertex.size=4, vertex.color="lightblue", edge.arrow.size=0.5, edge.curved=0.2)
+#g2 <- subset(g, name == "Laurent Montoya")
+#layout <- layout_with_fr(g2)
+#plot(g2, layout=layout, vertex.size=4, vertex.color="lightblue", edge.arrow.size=0.5, edge.curved=0.2)
 
 
-summary(g)
+summary(g2)
 ```
 
 
