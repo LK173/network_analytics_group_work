@@ -17,23 +17,80 @@ When you click the **Knit** button a document will be generated that includes bo
 
 ```{r }
 # Load librarys-----------------------------------------------------------------
-library(tidyverse)
 library(igraph)
 library(data.table)
 library(ggplot2)
 library(tibble)
+library(dplyr)
+
 ```
 
 ```{r }
 # Load data---------------------------------------------------------------------
-football.transfer <- read.csv(file = 'data/football-transfers.csv')
+df.football.transfer <- read.csv(file = '../data/football-transfers.csv')
+dt.filtered.data <- data.table(df.football.transfer)
+
+```
+
+```{r }
+# Create the undirected graph
+
+# Get a vector of unique club names
+club_names <- unique(c(df.football.transfer$dealing_club, df.football.transfer$club))
+
+# Create a named vector to map old club names to new unique IDs
+club_map <- setNames(paste0("club_", seq_along(club_names)), club_names)
+
+# Map club names to the unique IDs
+df.football.transfer$source <- club_map[df.football.transfer$dealing_club]
+df.football.transfer$target <- club_map[df.football.transfer$club]
+
+# Create directed graph with receiving club as the target node and sending club as the source node
+g.undirected <- graph_from_data_frame(df.football.transfer[, c("source", "target", "name")], directed = FALSE)
+
+# Tests
+# Count the number of self-loops
+#num_self_loops <- count_self_loops(g.undirected)
+num_self_loops <- sum(diag(as.matrix(get.adjacency(g.undirected))))
+
+print(num_self_loops/2)
+
+# Count the number of multiple edges
+num_multiple_edges <- length(count_multiple(g.undirected))
+
+print(num_multiple_edges)
+
+# Find the indices of isolated nodes
+num_isolated_nodes <- sum(degree(g.undirected) == 0)
+
+print(length(num_isolated_nodes))
+
+# Create graph with just connected clubs
+#g.undirected <- induced.subgraph(g.undirected, which(degree(g.undirected) > 0))
+
+# Remove loops from the graph --> Huge impact speak with flo
+#g.undirected <- simplify(g.undirected, remove.loops = TRUE)
+
+# Get a list of unique nodes in the graph
+unique_nodes <- unique(V(g.undirected)$name)
+
+# Create a new data frame with the unique node IDs and names
+df.football.club <- data.frame(club_id = substring(unique_nodes, 6), club_name = unique_nodes)
+
+# Set the node labels to the club names
+V(g.undirected)$label <- df.football.club$club_name[match(V(g.undirected)$name, df.football.club$club_id)]
+
+# Plot the directed graph without labels, small nodes, and edges
+plot(g.undirected, vertex.size = 5, edge.arrow.size = 0.5, vertex.label.cex = 0,
+     edge.color = "gray", vertex.color = "lightblue")
+
+summary(g.undirected)
 
 ```
 
 ```{r }
 # Filtering NA's out of columns market_value & fee------------------------------
 
-df.filtered.data <- na.omit(football.transfer)
 df.filtered.data <- rownames_to_column(df.filtered.data, var = "index")
 df.filtered.data <- subset(df.filtered.data, select = -index)
 dt.filtered.data <- data.table(df.filtered.data)
@@ -138,6 +195,8 @@ summary(g.clubs)
 
 
 ```{r }
+# Löschen
+
 chosen.club <- "FSV Zwickau"
 
 #chosen.club <- "Borussia Dortmund"
@@ -161,6 +220,8 @@ plot(g.club.neighbors, vertex.color = ifelse(V(g.club.neighbors)$name ==
 summary(g.club.neighbors)
 ```
 ```{r }
+# Löschen 
+
 #chosen.club <- "Eintracht Frankfurt"
 
 chosen.club <- "FSV Zwickau"
@@ -191,6 +252,8 @@ summary(g.club.neighbors)
 ```
 
 ```{r }
+# Löschen!! --> Max??
+
 # Number of clubs
 unique.total.clubs <- NROW(unique(dt.filtered.data$club))
 print(unique.total.clubs)
@@ -199,6 +262,8 @@ print(unique.total.clubs)
 
 
 ```{r }
+# Löschen!!
+
 # List and print the transfers in of chosen.club--------------------------------
 
 # Get the names of the players who transferred to or from the chosen club
@@ -221,6 +286,8 @@ print(player.df)
 ```
 
 ```{r }
+# Behalten für undirected --> Max??
+
 # Group by year and count the number of transfers per year
 dt.filtered.data.per.year <- dt.filtered.data[, .(n_transfers = .N), 
                                        by = season][order(season)]
@@ -242,6 +309,10 @@ print(dt.filtered.data.per.club.year)
 ```
 
 ```{r }
+# Behalten für undirected 
+# add homophily
+# diameter
+
 # Degree Distribution
 # Plot the degree distribution for our g.transfers.in network and calculate 
 # the statisitcs
@@ -259,6 +330,8 @@ summary(g.clubs)
 ```
 
 ```{r }
+# Behalten für undirected
+
 # Get the unipartite projection 2 of clubs which show two clubs are connected
 # to each other if they have at least one player in common-----------------------
 
@@ -267,7 +340,7 @@ summary(g.clubs)
 # Test if th graph contains movie with a degree of 0----------------------------
 
 
-degrees.proj.2 <- degree(g.clubs)
+#degrees.proj.2 <- degree(g.clubs)
 #isolated.clubs <- which(g.clubs == 0)
 
 cat("\nNumber of movies with a degree of zero in the projection 1 graph\n")
@@ -303,6 +376,7 @@ print(df.centrality.measures.clubs)
 ```
 
 ```{r }
+# Behalten für undirected
 
 # Normalized centrality measures for better interpretations---------------------
 

@@ -21,6 +21,7 @@ library(igraph)
 library(data.table)
 library(ggplot2)
 library(tibble)
+library(dplyr)
 ```
 
 ```{r }
@@ -119,24 +120,53 @@ df.football.transfer <- df.football.transfer %>% filter(season >= 2018 &
 
 ```{r }
 # Plot different kind of graphs
+# Get a vector of unique club names
+club_names <- unique(c(df.football.transfer$dealing_club, df.football.transfer$club))
+
+# Create a named vector to map old club names to new unique IDs
+club_map <- setNames(paste0("club_", seq_along(club_names)), club_names)
+
+# Map club names to the unique IDs
+df.football.transfer$source <- club_map[df.football.transfer$dealing_club]
+df.football.transfer$target <- club_map[df.football.transfer$club]
+
+# Create directed graph with receiving club as the target node and sending club as the source node
+g.directed <- graph_from_data_frame(df.football.transfer[, c("source", "target", "name")], directed = TRUE)
+
+# Get a list of unique nodes in the graph
+unique_nodes <- unique(V(g.directed)$name)
+
+# Create a new data frame with the unique node IDs and names
+df.football.club <- data.frame(club_id = substring(unique_nodes, 6), club_name = unique_nodes)
+
+# Set the node labels to the club names
+V(g.directed)$label <- df.football.club$club_name[match(V(g.directed)$name, df.football.club$club_id)]
+
+# Plot the directed graph without labels, small nodes, and edges
+plot(g.directed, vertex.size = 5, edge.arrow.size = 0.5, vertex.label.cex = 0,
+     edge.color = "gray", vertex.color = "lightblue")
+
+summary(g.directed)
+#3514 unique delaing_clubs and clubs
+# we have here 3514 nodes --> no too much nodes
 ```
 
 ```{r }
 
 # Create directed graph with receiving club as the target node and sending club as the source node
 g.directed <- graph_from_data_frame(
-  df.football.transfer[, c("dealing_club", "club")], directed = TRUE)
+  df.football.transfer[, c("dealing_club", "club", "name")], directed = TRUE)
 
 # Plot the directed graph without labels, small nodes, and edges
 plot(g.directed, vertex.size = 5, edge.arrow.size = 0.5, vertex.label.cex = 0,
      edge.color = "gray", vertex.label = NA, vertex.color = "lightblue")
 
-# Set vertex colors
-V(g.directed)$color <- ifelse(V(g.directed)$name %in% df.football.transfer$dealing_club, "red", "blue")
+# Set vertex colors --> dealing_club red and club blue
+#V(g.directed)$color <- ifelse(V(g.directed)$name %in% df.football.transfer$dealing_club, "red", "blue")
 
 # Plot the directed graph with red nodes for dealing_club and blue nodes for club
-plot(g.directed, vertex.size = 5, edge.arrow.size = 0.5, vertex.label.cex = 0,
-     edge.color = "gray", vertex.label = NA, vertex.color = V(g.directed)$color)
+#plot(g.directed, vertex.size = 5, edge.arrow.size = 0.5, vertex.label.cex = 0,
+#     edge.color = "gray", vertex.label = NA, vertex.color = V(g.directed)$color)
 
 
 # Extract the edge list
