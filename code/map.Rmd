@@ -1,0 +1,77 @@
+---
+title: "Map"
+output: html_document
+date: "2023-03-13"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+install.packages('plotly')
+```
+
+```{r}
+library(plotly)
+library(ggplot2)
+world_map <- ggplot() +
+  borders("world", colour = "lightgrey", fill = "white") +
+  coord_equal(xlim = c(-180, 180), ylim = c(-90, 90))
+
+p <- world_map
+
+# add arrows to the map for each directed edge in the dataset
+p <- p + geom_segment(aes(x = dealing_country_lon, y = dealing_country_lat, xend = country_lon, yend = country_lat), data = transfer_data_2015, arrow = arrow(length = unit(0.2, "cm")), color = "blue")
+
+# add points for each node in the dataset
+p <- p + geom_point(aes(x = country_lon, y = country_lat, label = country), data = transfer_data_2015, color = "red", size = 2)
+
+# customize the appearance of the plot
+p <- p + theme_void() + theme(legend.position = "none")
+
+# show the plot
+ggplotly(p)
+```
+
+```{r}
+library(shiny)
+library(ggplot2)
+
+ui <- fluidPage(
+  titlePanel("World Map"),
+  sidebarLayout(
+    sidebarPanel(
+      # add any input widgets here, if needed
+    ),
+    mainPanel(
+      plotlyOutput("map")
+    )
+  )
+)
+
+server <- function(input, output) {
+  # load the transfer_data_2015 dataset here, if not already loaded
+  
+  world_map <- ggplot() +
+    borders("world", colour = "lightgrey", fill = "white") +
+    coord_equal(xlim = c(-180, 180), ylim = c(-90, 90))
+  
+  p <- world_map
+  
+  # add arrows to the map for each directed edge in the dataset
+  p <- p + geom_segment(aes(x = dealing_country_lon, y = dealing_country_lat, xend = country_lon, yend = country_lat), data = transfer_data_2015, arrow = arrow(length = unit(0.2, "cm")), color = "blue")
+  
+  # add points for each node in the dataset
+  p <- p + geom_point(aes(x = country_lon, y = country_lat, label = country), data = transfer_data_2015, color = "red", size = 2)
+  
+  # customize the appearance of the plot
+  p <- p + theme_void() + theme(legend.position = "none")
+  
+  output$map <- renderPlotly({
+    ggplotly(p)
+  })
+}
+
+shinyApp(ui = ui, server = server)
+```
