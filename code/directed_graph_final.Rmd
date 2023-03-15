@@ -507,8 +507,8 @@ print(test.dice.matrix)
 transitivity(g.directed, type = "average")
 
 # 3. PageRank
-pr_norm <- scale(pr)
 pr <- page_rank(g.directed)$vector
+pr_norm <- scale(pr)
 df.pr <- data.frame(club = names(pr), pagerank = pr)
 
 # Scale pagerank between 0 and 1

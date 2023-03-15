@@ -118,12 +118,20 @@ closeness <- closeness(g.clubs.subgraph)
 betweenness <- round(betweenness(g.clubs.subgraph), 4)
 eigenvector <- round(evcent(g.clubs.subgraph)$vector, 4)
 
+# Normalized centrality measures for better interpretations---------------------
+normalized.degree <- round(degree(g.clubs.subgraph, normalized = TRUE), 4)
+normalized.closeness <- round(closeness(g.clubs.subgraph, normalize = TRUE), 4)
+normalized.betweenness <- round(betweenness(g.clubs.subgraph, 
+                                            normalize = TRUE), 4)
+
 # Create and print a dataframe with centrality measures-------------------------
 
 df.centrality.measures.clubs <- data.frame(degree = degree.centrality,
-                                            closeness = closeness, 
-                                            betweenness = betweenness, 
-                                            eigenvector = eigenvector)
+                                           normalized_degree = normalized.degree,
+                                           closeness = closeness,
+                                           normalized_closeness = normalized.closeness,
+                                           betweenness = normalized.betweenness,
+                                           eigenvector = eigenvector)
 
 print(df.centrality.measures.clubs)
 
