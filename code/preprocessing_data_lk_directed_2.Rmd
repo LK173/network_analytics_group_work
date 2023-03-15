@@ -149,6 +149,12 @@ plot(g.directed, vertex.size = 5, edge.arrow.size = 0.5, vertex.label.cex = 0,
 summary(g.directed)
 #3514 unique delaing_clubs and clubs
 # we have here 3514 nodes --> no too much nodes
+
+# Count the number of multiple edges
+num_multiple_edges <- length(count_multiple(g.directed))
+
+print(num_multiple_edges)
+
 ```
 
 ```{r }

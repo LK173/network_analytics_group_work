@@ -1,0 +1,493 @@
+---
+title: "Shiny_directed_graph"
+output: html_document
+date: "2023-03-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Load the Required Libraries---------------------------------------------------
+library(shiny)
+library(dplyr)
+library(ggplot2)
+library(igraph)
+library(visNetwork)
+
+
+```
+
+```{r}
+#Load the Data
+df.football.transfer <- read.csv(file = '../data/football-transfers.csv')
+
+df.football.transfer <- df.football.transfer %>% filter(season >= 2020 &
+                                                          season <= 2021)
+
+data <- df.football.transfer
+
+
+
+```
+
+
+```{r}
+# Page directed graph analysis performance index
+
+ui <- fluidPage(
+  titlePanel("Football Transfers Network Exploration by self-developed performance index "),
+  
+  sidebarLayout(
+    sidebarPanel(
+      h4("Choose a country, club, duration"),
+            sliderInput("year", "Select year range:",
+                  min = min(data$season),
+                  max = max(data$season),
+                  value = c(min(data$season), max(data$season)),
+                  step = 1,sep = ""),
+      selectInput("country", "Country:", unique(data$country)),
+      uiOutput("club_ui"),
+      selectInput("position", "Position:", c("All", unique(data$position_category)))
+      ),
+    
+    mainPanel(
+      tags$h4("Top 10 transfers to chosen club by normalized performance index", 
+              style = "font-weight: bold; font-size: 24px; text-align: center"),
+      fluidRow( 
+        column(6, visNetworkOutput("performers_graph")),
+        column(6, plotOutput("scatter_plot"))
+      ),
+      tags$h4("Detailed informations about the transfers displayed above",
+              style = "font-weight: bold; font-size: 24px; text-align: center"),
+      dataTableOutput("performers_table")
+    )
+  )
+)
+
+server <- function(input, output) {
+  season.data <- reactive({
+    data %>%
+      filter(season >= input$year[1] & season <= input$year[2]) %>%
+      filter(country == input$country) %>%
+      filter(if (input$position != "All") position_category == input$position else TRUE)
+  })
+  
+  output$club_ui <- renderUI({
+    clubs.filtered <- season.data() %>% filter(country == input$country) %>% select(club)
+    selectInput("club", "Club:", choices = unique(clubs.filtered))
+  })
+  
+  # Plot directed graph interactive of top performers
+  df.performers <- reactive({
+    season.filtered <- season.data() %>% filter(country == input$country, club == input$club)
+    
+    # Filter for top performers based on age and performance score, and keep only top 20
+    performers.top <- season.filtered[order(-season.filtered$normalized_performance), ][1:10, ]
+    
+    # Create a new dataframe with only the relevant columns
+    performers.df <- subset(performers.top, select=c("dealing_club", "club", "name"))
+    
+    # Create the graph
+    g.perform <- graph_from_data_frame(performers.df, directed = TRUE)
+    
+    # Convert graph to edges and nodes data frames
+    df.nodes <- data.frame(id = V(g.perform)$name, label = V(g.perform)$name)
+    df.edges <- data.frame(from = get.edgelist(g.perform)[, 1], to = get.edgelist(g.perform)[, 2],
+                           label = E(g.perform)$name)
+    
+    # Create a visNetwork object instead of using the base igraph plot
+    visNetwork(df.nodes, df.edges, width = "100%", height = "600px") %>%
+      visEdges(arrows = "to", font = list(size = 10, face = "sans-serif"), label = df.edges$label) %>%
+      visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) %>%
+      visLayout(randomSeed = 42)
+  })
+  
+  output$performers_graph <- renderVisNetwork({
+    df.performers()
+  })
+  
+  # Create a table of detailed informations about top perfomers
+  filtered.data <- reactive({
+    season.filtered <- season.data() %>% filter(country == input$country, club == input$club)
+    
+    # Filter for top performers based on age and performance score, and keep only top 20
+    df.performers.top <- season.filtered[order(-season.filtered$normalized_performance), ][1:10, ]
+    
+    # Create a new dataframe with only the relevant columns
+    df.performers <- subset(df.performers.top, select=c("season", "country", "club", "dealing_club",
+                                                     "name", "age", "position_category", "nationality",
+                                                     "normalized_performance"))
+    
+    # Reset the row names/index
+    rownames(df.performers) <- NULL
+    df.performers
+  })
+  
+  # Create a scatter plot of market values by position and age based on the filtered data
+  output$scatter_plot <- renderPlot({
+    filtered.data() %>%
+      ggplot(aes(x = age, y = normalized_performance, color = position_category)) +
+      geom_point(size = 2, alpha = 0.6) +
+      scale_color_brewer(palette = "Set1") +
+      scale_y_continuous(labels = scales::comma) +
+      labs(x = "Age", y = "Normalized Performance",
+           title = "Performance by Position and Age")+
+      theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
+            axis.title = element_text(face = "bold"),
+            legend.title = element_text(face = "bold"),
+            legend.text = element_text(face = "bold"))
+  })
+  output$performers_table <- renderDataTable({
+    filtered.data() 
+    },
+    options = list(
+    searching = FALSE,
+    lengthChange = FALSE,
+    paging = FALSE,
+    pageLength = 10
+))
+}
+```
+
+```{r}
+
+#load the app 
+shinyApp(ui, server)
+```
+
+```{r}
+# Page undirected graph
+
+# Shiny app UI
+ui <- fluidPage(
+  titlePanel("Football Transfers Network Exploration overview with undirected graph"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      h4("Choose a country, club, duration"),
+      sliderInput("year", "Select year range:",
+                  min = min(data$season),
+                  max = max(data$season),
+                  value = c(min(data$season), max(data$season)),
+                  step = 1,sep = ""),
+      selectInput("country", "Country:", unique(data$country)),
+      uiOutput("club_ui"),
+      selectInput("position", "Position:", c("All", unique(data$position_category)))
+    ),
+    
+    mainPanel(
+      visNetworkOutput("undirected_graph"),
+      verbatimTextOutput("graph_summary")
+    )
+  )
+)
+
+# Shiny app server
+server <- function(input, output) {
+  season_data <- reactive({
+    data %>%
+      filter(season >= input$year[1] & season <= input$year[2]) %>%
+      filter(country == input$country) %>%
+      filter(if (input$position != "All") position_category == input$position else TRUE)
+  })
+  
+  output$club_ui <- renderUI({
+    clubs_filtered <- season_data() %>% filter(country == input$country) %>% select(club)
+    selectInput("club", "Club:", choices = unique(clubs_filtered))
+  })
+
+  # Create the undirected graph
+  undirected_graph <- reactive({
+    g_undirected <- graph_from_data_frame(season_data()[, c("dealing_club", "club", "name")], directed = FALSE)
+    nodes_df <- data.frame(id = V(g_undirected)$name, label = V(g_undirected)$name)
+    edges_df <- data.frame(from = get.edgelist(g_undirected)[, 1], to = get.edgelist(g_undirected)[, 2],
+                           label = E(g_undirected)$name)
+    
+    visNetwork(nodes_df, edges_df, width = "100%", height = "600px") %>%
+      visEdges(arrows = "to", font = list(size = 10, face = "sans-serif"), label = edges_df$label) %>%
+      visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) %>%
+      visLayout(randomSeed = 42)
+  })
+
+  # Render the undirected graph
+  output$undirected_graph <- renderVisNetwork({
+    undirected_graph()
+  })
+
+# Render the graph summary
+output$graph_summary <- renderText({
+  g_undirected <- graph_from_data_frame(season_data()[, c("dealing_club", "club", "name")], directed = FALSE)
+  summary_text <- capture.output(summary(g_undirected))
+  paste(summary_text, collapse = "\n")
+})
+}
+```
+
+```{r}
+
+#load the app 
+shinyApp(ui, server)
+```
+
+```{r}
+# Template with Filter
+
+ui <- fluidPage(
+  titlePanel("XXX"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      h4("Choose a country, club, duration"),
+            sliderInput("year", "Select year range:",
+                  min = min(data$season),
+                  max = max(data$season),
+                  value = c(min(data$season), max(data$season)),
+                  step = 1,sep = ""),
+      selectInput("country", "Country:", unique(data$country)),
+      uiOutput("club_ui"),
+      selectInput("position", "Position:", c("All", unique(data$position_category)))
+      ),
+    
+    mainPanel(
+    )
+  )
+)
+
+# Server side
+server <- function(input, output) {
+  season.data <- reactive({
+    data %>%
+      filter(season >= input$year[1] & season <= input$year[2]) %>%
+      filter(country == input$country) %>%
+      filter(if (input$position != "All") position_category == input$position else TRUE)
+  })
+  
+  output$club_ui <- renderUI({
+    clubs.filtered <- season.data() %>% filter(country == input$country) %>% select(club)
+    selectInput("club", "Club:", choices = unique(clubs.filtered))
+  })
+
+}
+```
+
+```{r}
+
+#load the app 
+shinyApp(ui, server)
+```
+
+```{r}
+# test zooming with visNetwork is working first try without direction and player
+# ui
+ui <- fluidPage(
+  titlePanel("Football Transfers Descriptive Statistics by normalized performance index of the player"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      h4("Choose a country, club, duration"),
+            sliderInput("year", "Select year range:",
+                  min = min(data$season),
+                  max = max(data$season),
+                  value = c(min(data$season), max(data$season)),
+                  step = 1,sep = ""),
+      selectInput("country", "Country:", unique(data$country)),
+      uiOutput("club_ui")
+    ),
+    
+    mainPanel(
+      h4("Transfers to chosen club by normalized performance index of the player"),
+      #verbatimTextOutput("player_count"),
+      visNetworkOutput("performers_graph"),
+      dataTableOutput("performers_table")
+    )
+  )
+)
+
+#Create the Server Function
+
+server <- function(input, output) {
+  
+  season_data <- reactive({
+    data %>% filter(season >= input$year[1] & season <= input$year[2])
+  })
+  
+  output$club_ui <- renderUI({
+    clubs_filtered <- season_data() %>% filter(country == input$country) %>% select(club)
+    selectInput("club", "Club:", choices = unique(clubs_filtered))
+  })
+  
+  # Plot directed graph interactive of top performers
+  df.performers <- reactive({
+    season_filtered <- season_data() %>% filter(country == input$country, club == input$club)
+    
+    # Filter for top performers based on age and performance score, and keep only top 20
+    performers_top <- season_filtered[order(-season_filtered$normalized_performance), ][1:7, ]
+    
+    # Create a new dataframe with only the relevant columns
+    performers_df <- subset(performers_top, select=c("dealing_club", "club", "name"))
+    
+    # Create the graph
+    g.perform <- graph_from_data_frame(performers_df, directed = TRUE)
+    
+    # Convert graph to edges and nodes data frames
+    nodes_df <- data.frame(id = V(g.perform)$name, label = V(g.perform)$name)
+    edges_df <- data.frame(from = get.edgelist(g.perform)[, 1], to = get.edgelist(g.perform)[, 2])
+    
+    # Create a visNetwork object instead of using the base igraph plot
+    visNetwork(nodes_df, edges_df, width = "100%", height = "600px") %>%
+      visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) %>%
+      visLayout(randomSeed = 42)
+  })
+  output$performers_graph <- renderVisNetwork({
+    df.performers()
+  })
+  
+  filtered_data <- reactive({
+    season_filtered <- season_data() %>% filter(country == input$country, club == input$club)
+    
+    # Filter for top performers based on age and performance score, and keep only top 20
+    performers_top <- season_filtered[order(-season_filtered$normalized_performance), ][1:7, ]
+    
+    # Create a new dataframe with only the relevant columns
+    performers_df <- subset(performers_top, select=c("season", "country", "club", "dealing_club",
+                                                     "name", "age", "position_category", "nationality",
+                                                     "normalized_performance"))
+    
+    # Reset the row names/index
+    rownames(performers_df) <- NULL
+    performers_df
+  })
+  output$performers_table <- renderDataTable({
+    filtered_data()
+  })
+  
+}
+```
+
+```{r}
+#load the app 
+shinyApp(ui, server)
+```
+
+```{r}
+# fist try
+# first try
+#Create the User Interface
+ui <- fluidPage(
+  titlePanel("Football Transfers Descriptive Statistics"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      h4("Choose a country, club, duration"),
+            sliderInput("year", "Select year range:",
+                  min = min(data$season),
+                  max = max(data$season),
+                  value = c(min(data$season), max(data$season)),
+                  step = 1,sep = ""),
+      selectInput("country", "Country:", unique(data$country)),
+      uiOutput("club_ui")
+    ),
+    
+    mainPanel(
+      h4("Transfers to chosen club"),
+      #verbatimTextOutput("player_count"),
+      plotOutput("performers_graph")
+    )
+  )
+)
+
+#Create the Server Function
+
+server <- function(input, output) {
+  
+  season_data <- reactive({
+    data %>% filter(season >= input$year[1] & season <= input$year[2])
+  })
+  
+  output$club_ui <- renderUI({
+    clubs_filtered <- season_data() %>% filter(country == input$country) %>% select(club)
+    selectInput("club", "Club:", choices = unique(clubs_filtered))
+  })
+  
+  #test
+  df.performers <- reactive({
+    season_filtered <- season_data() %>% filter(country == input$country, club == input$club)
+    
+    # Filter for top performers based on age and performance score, and keep only top 20
+    performers_top <- season_filtered[order(-season_filtered$normalized_performance), ][1:7, ]
+    
+    # Create a new dataframe with only the relevant columns
+    performers_df <- subset(performers_top, select=c("dealing_club", "club", "name"))
+    
+    # Create the graph
+    g.perform <- graph_from_data_frame(performers_df, directed = TRUE)
+    
+    # Convert graph to edges and nodes data frames
+    nodes_df <- data.frame(id = V(g.perform)$name)
+    edges_df <- data.frame(from = get.edgelist(g.perform)[, 1], to = get.edgelist(g.perform)[, 2])
+    
+    # Plot the graph
+    plot(g.perform,
+         edge.arrow.size=0.5,
+         vertex.size=4,
+         vertex.color="lightblue",
+         vertex.label.color="black",
+         vertex.label.cex=0.8,
+         vertex.label.dist=1.8,
+         edge.label = E(g.perform)$name,
+        layout=layout_with_fr)
+  })
+  
+  output$performers_graph <- renderPlot({
+    df.performers()
+  })
+
+}
+
+```
+
+```{r}
+#load the app 
+shinyApp(ui, server)
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```
+
+```{r}
+```

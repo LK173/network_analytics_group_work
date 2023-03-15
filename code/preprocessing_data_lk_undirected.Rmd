@@ -87,7 +87,9 @@ plot(g.undirected, vertex.size = 5, edge.arrow.size = 0.5, vertex.label.cex = 0,
 summary(g.undirected)
 
 ```
+```{r }
 
+```
 ```{r }
 # Filtering NA's out of columns market_value & fee------------------------------
 

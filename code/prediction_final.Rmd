@@ -65,6 +65,7 @@ dt.filtered.data <- data.table(df.football.transfer)
 ```
 
 ```{r }
+# Max!! plus 
 # Filter for top performers
  df.performers <- head(df.football.transfer[order(
    -df.football.transfer$normalized_performance), ], 50)

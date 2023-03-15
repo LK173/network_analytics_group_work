@@ -1,0 +1,275 @@
+---
+title: "undirected_final"
+output: html_document
+date: "2023-03-14"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Load librarys-----------------------------------------------------------------
+library(igraph)
+library(data.table)
+library(ggplot2)
+library(tibble)
+library(dplyr)
+library(network)
+
+```
+
+```{r}
+# Load data---------------------------------------------------------------------
+df.football.transfer <- read.csv(file = '../data/football-transfers.csv')
+dt.filtered.data <- data.table(df.football.transfer)
+```
+
+```{r}
+# Optional if you want to filter something--------------------------------------
+#dt.filtered.data <- dt.filtered.data[season >= 2018 & season <= 2021]
+```
+
+```{r}
+# Create the undirected graph---------------------------------------------------
+
+# Get a vector of unique club names---------------------------------------------
+club.names <- unique(c(df.football.transfer$dealing_club,
+                       df.football.transfer$club))
+
+# Create directed graph with receiving club as the target node and 
+# sending club as the source node-----------------------------------------------
+g.undirected <- graph_from_data_frame(df.football.transfer[, c("dealing_club",
+                                                               "club", "name")],
+                                      directed = FALSE)
+
+
+# Get a list of unique nodes in the graph---------------------------------------
+unique.nodes <- unique(V(g.undirected)$name)
+edge.list <- E(g.undirected)$name
+
+
+# Plot the directed graph without labels, small nodes, and edges----------------
+plot(g.undirected, vertex.size = 2, edge.arrow.size = 0.5, vertex.label.cex = 0,
+     edge.color = "gray", vertex.color = "blue", vertex.label = NA)
+
+summary(g.undirected)
+
+```
+
+```{r}
+# Vllt hast du eine Idee wo das passt? Finde die Tables als input nochmal aufschlussreich
+# Eher bei max oder doch woanders? Kannst mir ja gerne mal feedback geben
+
+# Group by year and count the number of transfers per year----------------------
+dt.filtered.data.per.year <- dt.filtered.data[, .(n_transfers = .N), 
+                                       by = season][order(season)]
+print(dt.filtered.data.per.year)
+
+# Group by club and count the number of transfers-------------------------------
+dt.filtered.data.per.club <- dt.filtered.data[, .(n_transfers = .N), 
+                                       by = club][order(-n_transfers)]
+print(dt.filtered.data.per.club)
+
+# Group by club and year and count the number of transfers----------------------
+dt.filtered.data.per.club.year <- dt.filtered.data[, .(n_transfers = .N), 
+                                                         by = .(club, 
+                                                                season)][order(
+                                                                  season)]
+
+print(dt.filtered.data.per.club.year)
+```
+```{r}
+# Degree Distribution-----------------------------------------------------------
+# Plot the degree distribution for our g.transfers.in network and calculate 
+# the statisitcs
+
+degree.subgraph <- degree(g.undirected)
+hist(degree(g.undirected), 
+     main = "Degree Distribution of the original g.clubs.subgraph", 
+     xlab = "Degree", ylab = "Number of clubs", col = "red", border = "white")
+
+cat("\n Statistical summary of the original graph:\n")
+cat("\n Avg. degree of the undirected graph:\n")
+mean(degree(g.undirected))
+cat("\n Clustering coefficient of the undirected graph:\n")
+transitivity(g.undirected, type = "average")
+cat("\n Avg. path length of the undirected graph:\n")
+average.path.length(g.undirected)
+summary(g.undirected)
+```
+
+```{r}
+# Create and plot the subgraph with only connected movies including the summary
+# ------------------------------------------------------------------------------
+
+g.clubs.subgraph <- induced.subgraph(g.undirected, 
+                                      which(degree(g.undirected) > 0))
+
+plot(g.clubs.subgraph, layout = layout_with_fr, 
+     vertex.color = V(g.clubs.subgraph)$color, vertex.label = NA, 
+     vertex.size = 1, margin = -0.1, edge.width = 0.01)
+summary(g.clubs.subgraph)
+
+
+degree.centrality <- degree(g.clubs.subgraph, mode = "all")
+
+closeness <- closeness(g.clubs.subgraph)
+betweenness <- round(betweenness(g.clubs.subgraph), 4)
+eigenvector <- round(evcent(g.clubs.subgraph)$vector, 4)
+
+# Create and print a dataframe with centrality measures-------------------------
+
+df.centrality.measures.clubs <- data.frame(degree = degree.centrality,
+                                            closeness = closeness, 
+                                            betweenness = betweenness, 
+                                            eigenvector = eigenvector)
+
+print(df.centrality.measures.clubs)
+
+```
+```{r}
+# Normalized centrality measures for better interpretations---------------------
+normalized.degree <- round(degree(g.clubs.subgraph, normalized = TRUE), 4)
+normalized.closeness <- round(closeness(g.clubs.subgraph, normalize = TRUE), 4)
+normalized.betweenness <- round(betweenness(g.clubs.subgraph, 
+                                            normalize = TRUE), 4)
+
+
+# Degree centrality-------------------------------------------------------------
+df.top.degree.centrality <- data.frame(degree = 
+                                         head(sort(degree.centrality, 
+                                                   decreasing = TRUE), 20), 
+                                       normalized_degree = 
+                                         head(sort(normalized.degree, 
+                                                   decreasing = TRUE), 20))
+
+print("Top 20 clubs with highest degree centrality:\n")
+print(df.top.degree.centrality)
+
+# Closeness centrality----------------------------------------------------------
+df.top.closeness <- data.frame(closeness = 
+                                 head(sort(closeness, 
+                                           decreasing = TRUE), 20),
+                               normalized_closeness = 
+                                 head(sort(normalized.closeness, 
+                                           decreasing = TRUE), 20))
+
+print("Top 20 clubs with highest closeness centrality:\n")
+print(df.top.closeness)
+
+# Betweenness centrality--------------------------------------------------------
+df.top.betweenness <- data.frame(betweenness = 
+                                   head(sort(betweenness, 
+                                             decreasing = TRUE), 20),
+                                 normalized_betweenness = 
+                                   head(sort(normalized.betweenness, 
+                                             decreasing = TRUE), 20))
+print("Top 20 clubs with highest betweenness centrality:\n")
+print(df.top.betweenness)
+
+# Eigenvector centrality--------------------------------------------------------
+df.top.eigenvector <- data.frame( eigenvector = 
+                                    head(sort(eigenvector, 
+                                              decreasing = TRUE), 20))
+
+print("Top 20 clubs with highest eigenvector centrality:\n")
+print(df.top.eigenvector)
+```
+```{r}
+# Optionale Measures wenn noch Zeit
+# Homophily
+# Assortativity
+# PageRank
+# Modularity
+
+
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
+```{r}
+```
