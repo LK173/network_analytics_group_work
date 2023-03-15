@@ -23,8 +23,8 @@ library(visNetwork)
 #Load the Data
 df.football.transfer <- read.csv(file = '../data/football-transfers.csv')
 
-df.football.transfer <- df.football.transfer %>% filter(season >= 2020 &
-                                                          season <= 2021)
+#df.football.transfer <- df.football.transfer %>% filter(season >= 2020 &
+#                                                          season <= 2021)
 
 data <- df.football.transfer
 
@@ -177,6 +177,10 @@ ui <- fluidPage(
                   max = max(data$season),
                   value = c(min(data$season), max(data$season)),
                   step = 1,sep = ""),
+#      selectInput("year",
+#        "Select a year:",
+#        choices = 1980:2021,
+#        selected = 1980, width = "100%"),
       selectInput("country", "Country:", unique(data$country)),
       selectInput("position", "Position:", c("All", unique(data$position_category)))
     ),
