@@ -1,0 +1,448 @@
+---
+title: "preprocceing_data"
+output: html_document
+date: "2023-03-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+```{r }
+# Load librarys-----------------------------------------------------------------
+library(igraph)
+library(data.table)
+library(ggplot2)
+library(tibble)
+library(dplyr)
+
+```
+
+```{r }
+# Load data---------------------------------------------------------------------
+df.football.transfer <- read.csv(file = '../data/football-transfers.csv')
+dt.filtered.data <- data.table(df.football.transfer)
+
+```
+
+```{r }
+# Create the undirected graph
+
+# Get a vector of unique club names
+club_names <- unique(c(df.football.transfer$dealing_club, df.football.transfer$club))
+
+# Create a named vector to map old club names to new unique IDs
+club_map <- setNames(paste0("club_", seq_along(club_names)), club_names)
+
+# Map club names to the unique IDs
+df.football.transfer$source <- club_map[df.football.transfer$dealing_club]
+df.football.transfer$target <- club_map[df.football.transfer$club]
+
+# Create directed graph with receiving club as the target node and sending club as the source node
+g.undirected <- graph_from_data_frame(df.football.transfer[, c("source", "target", "name")], directed = FALSE)
+
+# Tests
+# Count the number of self-loops
+#num_self_loops <- count_self_loops(g.undirected)
+num_self_loops <- sum(diag(as.matrix(get.adjacency(g.undirected))))
+
+print(num_self_loops/2)
+
+# Count the number of multiple edges
+num_multiple_edges <- length(count_multiple(g.undirected))
+
+print(num_multiple_edges)
+
+# Find the indices of isolated nodes
+num_isolated_nodes <- sum(degree(g.undirected) == 0)
+
+print(length(num_isolated_nodes))
+
+# Create graph with just connected clubs
+#g.undirected <- induced.subgraph(g.undirected, which(degree(g.undirected) > 0))
+
+# Remove loops from the graph --> Huge impact speak with flo
+#g.undirected <- simplify(g.undirected, remove.loops = TRUE)
+
+# Get a list of unique nodes in the graph
+unique_nodes <- unique(V(g.undirected)$name)
+
+# Create a new data frame with the unique node IDs and names
+df.football.club <- data.frame(club_id = substring(unique_nodes, 6), club_name = unique_nodes)
+
+# Set the node labels to the club names
+V(g.undirected)$label <- df.football.club$club_name[match(V(g.undirected)$name, df.football.club$club_id)]
+
+# Plot the directed graph without labels, small nodes, and edges
+plot(g.undirected, vertex.size = 5, edge.arrow.size = 0.5, vertex.label.cex = 0,
+     edge.color = "gray", vertex.color = "lightblue")
+
+summary(g.undirected)
+
+```
+```{r }
+
+```
+```{r }
+# Filtering NA's out of columns market_value & fee------------------------------
+
+df.filtered.data <- rownames_to_column(df.filtered.data, var = "index")
+df.filtered.data <- subset(df.filtered.data, select = -index)
+dt.filtered.data <- data.table(df.filtered.data)
+#dt.filtered.data <- subset(dt.filtered.data, name != 'Brito')
+
+# create a vector of names to delete
+names_to_delete <- c('Brito', 'Sousa', 'Alcides', 'Ferro', 'Cinfães', 'Ismaily',
+                     'Maia', 'Dnipro')
+
+
+# remove rows with the specified names
+dt.filtered.data <- dt.filtered.data[!(dt.filtered.data$name %in% names_to_delete), ]
+
+
+# Filter the rows of column "movement" that only contain the string "in"--------
+# Player transfer from dealing_club to club
+
+#df.filtered.data.in <- subset(df.filtered.data, movement == "in")
+#df.filtered.data.in <- rownames_to_column(df.filtered.data.in, var = "index")
+#df.filtered.data.in <- subset(df.filtered.data.in, select = -index)
+#dt.filtered.data.in <- data.table(df.filtered.data.in)
+
+# Filter the rows of column "movement" that only contain the string "out"-------
+# Player transfer from club to dealing club
+
+#df.filtered.data.out <- subset(df.filtered.data, movement == "out")
+#df.filtered.data.out <- rownames_to_column(df.filtered.data.out, var = "index")
+#df.filtered.data.out <- subset(df.filtered.data.out, select = -index)
+#dt.filtered.data.out <- data.table(df.filtered.data.out)
+```
+
+```{r }
+# Optional if you want to filter something
+
+dt.filtered.data <- dt.filtered.data[season >= 2018 & season <= 2021]
+
+```
+
+```{r }
+# Build a bipartite graph of the in/out movement data of clubs and player(name)
+# Actor rot und movie war blau --> actor war true und movie war False
+# Bei uns club somit rot und player blau
+# Projection 1 --> false --> name and Projection 2 --> true --> club
+
+all.club <- dt.filtered.data[, list(name = unique(club),
+                                       type=TRUE)]
+all.name <- dt.filtered.data[, list(name = unique(name), type=FALSE)]
+
+all.vertices <- rbind(all.club, all.name)
+
+# Deletion of duplicates
+print(all.vertices[duplicated(all.vertices$name), ])
+all.vertices <- all.vertices[!duplicated(all.vertices$name), ]
+print(all.vertices[duplicated(all.vertices$name), ])
+
+
+
+g.transfers <- graph.data.frame(dt.filtered.data[, list(club, 
+                                                              name)], 
+                                   directed= FALSE, vertices=all.vertices)
+```
+
+```{r }
+# Plot the bipartite graph------------------------------------------------------
+V(g.transfers)$color <- ifelse(V(g.transfers)$type == 1, "red", "blue")
+
+plot(g.transfers, layout = layout.bipartite(g.transfers), vertex.label = NA)
+
+plot(g.transfers, layout = layout_with_fr, vertex.color = V(g.transfers)$color,
+     vertex.label = NA, vertex.size = 1, margin = -0.1)
+
+```
+
+```{r }
+# Projection 1 edges = 2 name sind verbunden wenn gleichen spieler haben
+
+# check for bipartiteness
+i <- which(V(g.transfers)$type[match(ends(g.transfers,1:ecount(g.transfers))[,1],V(g.transfers)$name)] == V(g.transfers)$type[match(ends(g.transfers,1:ecount(g.transfers))[,2],V(g.transfers)$name)])
+ends(g.transfers, i)
+
+if (!is_bipartite(g.transfers)) {
+  # remove non-bipartite edges
+  g.transfers <- delete_edges(g.transfers,
+                              which(!is.bipartite(g.transfers)))
+}
+
+g.player <- bipartite.projection(g.transfers)$proj1
+plot(g.player, layout = layout_with_fr, vertex.color = V(g.player)$color, 
+     vertex.label = NA, vertex.size = 1, margin = -0.1)
+summary(g.player)
+
+```
+
+```{r }
+# Projection 2 edges = 2 clubs sind verbunden wenn in beiden der gleiche spieler gespielt hat
+g.clubs <- bipartite.projection(g.transfers)$proj2
+plot(g.clubs, layout = layout_with_fr, vertex.color = V(g.clubs)$color, 
+     vertex.label = NA, vertex.size = 1, margin = -0.1)
+summary(g.clubs)
+```
+
+
+
+```{r }
+# Löschen
+
+chosen.club <- "FSV Zwickau"
+
+#chosen.club <- "Borussia Dortmund"
+
+# Create a subgraph consisting of the chosen movie and its neighbors
+# ------------------------------------------------------------------------------
+club.neighbors <- neighbors(g.transfers, chosen.club)
+all.vertices.neighbors <- c(V(g.transfers)[club.neighbors], 
+                            V(g.transfers)[chosen.club])
+
+
+# Transforming movie.neighbors in a graph object
+# ------------------------------------------------------------------------------
+g.club.neighbors <- induced_subgraph(g.transfers, all.vertices.neighbors)
+
+# Plot the subgraph with the chosen movie in red as focal node and neighbors blue
+# ------------------------------------------------------------------------------
+plot(g.club.neighbors, vertex.color = ifelse(V(g.club.neighbors)$name == 
+                                              chosen.club, "red", "blue"), 
+     vertex.size = 2)
+summary(g.club.neighbors)
+```
+```{r }
+# Löschen 
+
+#chosen.club <- "Eintracht Frankfurt"
+
+chosen.club <- "FSV Zwickau"
+
+#chosen.club <- "Borussia Dortmund"
+
+# Create a subgraph consisting of the chosen movie and its neighbors
+# ------------------------------------------------------------------------------
+club.neighbors <- neighbors(g.clubs, chosen.club)
+all.vertices.neighbors <- c(V(g.clubs)[club.neighbors], 
+                            V(g.clubs)[chosen.club])
+
+
+# Transforming movie.neighbors in a graph object
+# ------------------------------------------------------------------------------
+g.club.neighbors <- induced_subgraph(g.clubs, all.vertices.neighbors)
+
+# Plot the subgraph with the chosen movie in red as focal node and neighbors blue
+# ------------------------------------------------------------------------------
+plot(g.club.neighbors, vertex.color = ifelse(V(g.club.neighbors)$name == 
+                                               chosen.club, "red", "blue"), 
+     vertex.size = 2)
+summary(g.club.neighbors)
+```
+
+```{r }
+# Explorative Analyse
+```
+
+```{r }
+# Löschen!! --> Max??
+
+# Number of clubs
+unique.total.clubs <- NROW(unique(dt.filtered.data$club))
+print(unique.total.clubs)
+
+```
+
+
+```{r }
+# Löschen!!
+
+# List and print the transfers in of chosen.club--------------------------------
+
+# Get the names of the players who transferred to or from the chosen club
+club.player <- unique(dt.filtered.data$name[dt.filtered.data$club == 
+                                                      chosen.club])
+print(club.player)
+
+# Get the club names, movements, year of the players
+player.clubs <- dt.filtered.data$club[dt.filtered.data$name %in% club.player]
+player.movement <- dt.filtered.data$movement[dt.filtered.data$name %in% club.player]
+player.year <- dt.filtered.data$season[dt.filtered.data$name %in% club.player]
+
+
+# Combine the player names and club names into a data frame
+player.df <- data.frame(Name = club.player, Club = player.clubs,
+                        Movement_Transfer = player.movement, 
+                        Year = player.year)
+
+print(player.df)
+```
+
+```{r }
+# Behalten für undirected --> Max??
+
+# Group by year and count the number of transfers per year
+dt.filtered.data.per.year <- dt.filtered.data[, .(n_transfers = .N), 
+                                       by = season][order(season)]
+print(dt.filtered.data.per.year)
+
+# Group by club and count the number of transfers
+dt.filtered.data.per.club <- dt.filtered.data[, .(n_transfers = .N), 
+                                       by = club][order(-n_transfers)]
+print(dt.filtered.data.per.club)
+
+# Group by club and year and count the number of transfers
+dt.filtered.data.per.club.year <- dt.filtered.data[, .(n_transfers = .N), 
+                                                         by = .(club, 
+                                                                season)][order(
+                                                                  season)]
+
+print(dt.filtered.data.per.club.year)
+
+```
+
+```{r }
+# Behalten für undirected 
+# add homophily
+# diameter
+
+# Degree Distribution
+# Plot the degree distribution for our g.transfers.in network and calculate 
+# the statisitcs
+
+degree.subgraph <- degree(g.clubs)
+hist(degree(g.clubs), 
+     main = "Degree Distribution of the original g.clubs.subgraph", 
+     xlab = "Degree", ylab = "Number of clubs", col = "red", border = "white")
+
+cat("\n Statistical summary of the original graph:\n")
+mean(degree(g.clubs))
+transitivity(g.clubs, type = "average")
+average.path.length(g.clubs)
+summary(g.clubs)
+```
+
+```{r }
+# Behalten für undirected
+
+# Get the unipartite projection 2 of clubs which show two clubs are connected
+# to each other if they have at least one player in common-----------------------
+
+#g.clubs.proj.2 <- bipartite.projection(g.transfers)$proj2
+
+# Test if th graph contains movie with a degree of 0----------------------------
+
+
+#degrees.proj.2 <- degree(g.clubs)
+#isolated.clubs <- which(g.clubs == 0)
+
+cat("\nNumber of movies with a degree of zero in the projection 1 graph\n")
+#print(isolated.clubs)
+
+# Create and plot the subgraph with only connected movies including the summary
+# ------------------------------------------------------------------------------
+
+g.clubs.subgraph <- induced.subgraph(g.clubs, 
+                                      which(degree(g.clubs) > 0))
+
+plot(g.clubs.subgraph, layout = layout_with_fr, 
+     vertex.color = V(g.clubs.subgraph)$color, vertex.label = NA, 
+     vertex.size = 1, margin = -0.1, edge.width = 0.01)
+summary(g.clubs.subgraph)
+
+
+degree.centrality <- degree(g.clubs.subgraph, mode = "all")
+
+closeness <- closeness(g.clubs.subgraph)
+betweenness <- round(betweenness(g.clubs.subgraph), 4)
+eigenvector <- round(evcent(g.clubs.subgraph)$vector, 4)
+
+# Create and print a dataframe with centrality measures-------------------------
+
+df.centrality.measures.clubs <- data.frame(degree = degree.centrality,
+                                            closeness = closeness, 
+                                            betweenness = betweenness, 
+                                            eigenvector = eigenvector)
+
+print(df.centrality.measures.clubs)
+
+```
+
+```{r }
+# Behalten für undirected
+
+# Normalized centrality measures for better interpretations---------------------
+
+normalized.degree <- round(degree(g.clubs.subgraph, normalized = TRUE), 4)
+normalized.closeness <- round(closeness(g.clubs.subgraph, normalize = TRUE), 4)
+normalized.betweenness <- round(betweenness(g.clubs.subgraph, 
+                                            normalize = TRUE), 4)
+
+
+# Degree centrality-------------------------------------------------------------
+
+df.top.degree.centrality <- data.frame(degree = 
+                                         head(sort(degree.centrality, 
+                                                   decreasing = TRUE), 20), 
+                                       normalized_degree = 
+                                         head(sort(normalized.degree, 
+                                                   decreasing = TRUE), 20))
+
+print("Top 20 movies with highest degree centrality:\n")
+print(df.top.degree.centrality)
+
+# Closeness centrality----------------------------------------------------------
+
+df.top.closeness <- data.frame(closeness = 
+                                 head(sort(closeness, 
+                                           decreasing = TRUE), 20),
+                               normalized_closeness = 
+                                 head(sort(normalized.closeness, 
+                                           decreasing = TRUE), 20))
+
+print("Top 20 movies with highest closeness centrality:\n")
+print(df.top.closeness)
+
+# Betweenness centrality--------------------------------------------------------
+
+df.top.betweenness <- data.frame(betweenness = 
+                                   head(sort(betweenness, 
+                                             decreasing = TRUE), 20),
+                                 normalized_betweenness = 
+                                   head(sort(normalized.betweenness, 
+                                             decreasing = TRUE), 20))
+print("Top 20 movies with highest betweenness centrality:\n")
+print(df.top.betweenness)
+
+# Eigenvector centrality--------------------------------------------------------
+
+df.top.eigenvector <- data.frame( eigenvector = 
+                                    head(sort(eigenvector, 
+                                              decreasing = TRUE), 20))
+print("Top 20 movies with highest eigenvector centrality:\n")
+print(df.top.eigenvector)
+```
+
+```{r }
+```
+
+```{r }
+```
+
+```{r }
+```
+
+```{r }
+```
+
+```{r }
+```

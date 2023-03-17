@@ -1,0 +1,860 @@
+---
+title: "preprocceing_data"
+output: html_document
+date: "2023-03-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+```{r }
+# Load librarys-----------------------------------------------------------------
+library(igraph)
+library(data.table)
+library(ggplot2)
+library(tibble)
+library(dplyr)
+```
+
+```{r }
+# Load data---------------------------------------------------------------------
+df.football.transfer <- read.csv(file = '../data/football-transfers.csv')
+```
+
+```{r }
+
+# Create the performance column as described earlier
+df.football.transfer$performance <- with(df.football.transfer, 
+                                ifelse(fee == 0, market_value / (1 * age), 
+                                       market_value / fee / age))
+
+# compute the mean and standard deviation of the performance column
+mean.performance <- mean(df.football.transfer$performance)
+sd.performance <- sd(df.football.transfer$performance)
+
+# create a normalized column
+df.football.transfer$normalized_performance <- (
+  df.football.transfer$performance - mean.performance) / sd.performance
+
+# compute the min and max of the performance column
+min.performance <- min(df.football.transfer$performance)
+max.performance <- max(df.football.transfer$performance)
+
+# create a normalized column
+df.football.transfer$normalized_performance <- 
+  (df.football.transfer$performance - min.performance) / (max.performance - 
+                                                            min.performance)
+
+# drop the original performance and normalized column column
+df.football.transfer$performance <- NULL
+
+df.football.transfer
+
+dt.filtered.data <- data.table(df.football.transfer)
+
+```
+
+```{r }
+# Filter for top performers
+ df.performers <- head(df.football.transfer[order(
+   -df.football.transfer$normalized_performance), ], 50)
+
+# Create a new dataframe with only the relevant columns
+ df.remove.col <- subset(df.performers, select=c("season", "country","club",
+                                                 "dealing_club", "name", "age",
+                                                 "position", "nationality",
+                                                 "normalized_performance"))
+ 
+# reset the row names/index
+rownames(df.remove.col) <- NULL
+
+df.remove.col
+```
+
+```{r }
+
+# Plot the best normalized_performance transfers of a favorite club
+
+favorite <- "Eintracht Frankfurt"
+
+
+# Filter for top performers based on age and performance score, and keep only top 20
+df.performers <- df.football.transfer[df.football.transfer$club == favorite, ]
+df.performers <- df.performers[order(-df.performers$normalized_performance), ][1:7, ]
+
+# Create a new dataframe with only the relevant columns
+df.performers <- subset(df.performers, select=c("dealing_club", "club", "name"))
+
+# Create the graph
+g.perform <- graph_from_data_frame(df.performers, directed = TRUE)
+
+# Plot the graph
+plot(g.perform,
+     edge.arrow.size=0.5,
+     vertex.size=4,
+     vertex.color="lightblue",
+     vertex.label.color="black",
+     vertex.label.cex=0.8,
+     vertex.label.dist=1.8,
+     edge.label = E(g.perform)$name,
+     layout=layout_with_fr)
+
+```
+
+```{r }
+# Optional if you want to filter something
+
+dt.filtered.data <- dt.filtered.data[season >= 2018 & season <= 2021]
+df.football.transfer <- df.football.transfer %>% filter(season >= 2018 &
+                                                          season <= 2021)
+
+```
+
+```{r }
+# Plot different kind of graphs
+# Get a vector of unique club names
+club_names <- unique(c(df.football.transfer$dealing_club, df.football.transfer$club))
+
+# Create a named vector to map old club names to new unique IDs
+club_map <- setNames(paste0("club_", seq_along(club_names)), club_names)
+
+# Map club names to the unique IDs
+df.football.transfer$source <- club_map[df.football.transfer$dealing_club]
+df.football.transfer$target <- club_map[df.football.transfer$club]
+
+# Create directed graph with receiving club as the target node and sending club as the source node
+g.directed <- graph_from_data_frame(df.football.transfer[, c("source", "target", "name")], directed = TRUE)
+
+# Get a list of unique nodes in the graph
+unique_nodes <- unique(V(g.directed)$name)
+
+# Create a new data frame with the unique node IDs and names
+df.football.club <- data.frame(club_id = substring(unique_nodes, 6), club_name = unique_nodes)
+
+# Set the node labels to the club names
+V(g.directed)$label <- df.football.club$club_name[match(V(g.directed)$name, df.football.club$club_id)]
+
+# Plot the directed graph without labels, small nodes, and edges
+plot(g.directed, vertex.size = 5, edge.arrow.size = 0.5, vertex.label.cex = 0,
+     edge.color = "gray", vertex.color = "lightblue")
+
+summary(g.directed)
+#3514 unique delaing_clubs and clubs
+# we have here 3514 nodes --> no too much nodes
+
+# Count the number of multiple edges
+num_multiple_edges <- length(count_multiple(g.directed))
+
+print(num_multiple_edges)
+
+```
+
+```{r }
+
+# Create directed graph with receiving club as the target node and sending club as the source node
+g.directed <- graph_from_data_frame(
+  df.football.transfer[, c("dealing_club", "club", "name")], directed = TRUE)
+
+# Plot the directed graph without labels, small nodes, and edges
+plot(g.directed, vertex.size = 5, edge.arrow.size = 0.5, vertex.label.cex = 0,
+     edge.color = "gray", vertex.label = NA, vertex.color = "lightblue")
+
+# Set vertex colors --> dealing_club red and club blue
+#V(g.directed)$color <- ifelse(V(g.directed)$name %in% df.football.transfer$dealing_club, "red", "blue")
+
+# Plot the directed graph with red nodes for dealing_club and blue nodes for club
+#plot(g.directed, vertex.size = 5, edge.arrow.size = 0.5, vertex.label.cex = 0,
+#     edge.color = "gray", vertex.label = NA, vertex.color = V(g.directed)$color)
+
+
+# Extract the edge list
+edges <- get.edgelist(g.directed, names = TRUE)
+
+# Add a column with the edge names
+#edges$edge_name <- paste(edges[,1], edges[,2], sep = " -> ")
+
+# Print the edge list
+head(edges)
+
+summary(g.directed)
+
+```
+```{r }
+# Same as above but with simplify and removed loops
+
+# Create graph with just connected clubs
+g <- induced.subgraph(g.directed, which(degree(g.directed) > 0))
+
+# Remove loops from the graph --> Huge impact speak with flo
+g <- simplify(g, remove.loops = TRUE)
+
+# Plot the directed graph without labels, small nodes, and edges
+plot(g, vertex.size = 5, edge.arrow.size = 0.5, vertex.label.cex = 0,
+     edge.color = "gray", vertex.label = NA, vertex.color = "lightblue")
+
+# Set vertex colors
+V(g)$color <- ifelse(V(g)$name %in% df.football.transfer$dealing_club, "red", "blue")
+
+# Plot the directed graph with red nodes for dealing_club and blue nodes for club
+plot(g, vertex.size = 5, edge.arrow.size = 0.5, vertex.label.cex = 0,
+     edge.color = "gray", vertex.label = NA, vertex.color = V(g.directed)$color)
+
+
+# Extract the edge list
+edges <- get.edgelist(g, names = TRUE)
+
+# Add a column with the edge names
+#edges$edge_name <- paste(edges[,1], edges[,2], sep = " -> ")
+
+# Print the edge list
+head(edges)
+summary(g)
+
+```
+
+```{r }
+
+# Create weighted graph with normalized performance as the edge weight
+g.weighted <- graph_from_data_frame(
+  df.football.transfer[, c("dealing_club", "club",
+                           "normalized_performance")], directed = TRUE)
+
+# Set the edge weight attribute to the normalized performance column
+E(g.weighted)$weight <- df.football.transfer$normalized_performance
+E(g.weighted)$weight[E(g.weighted)$weight <= 0] <- NA
+
+
+# Plot the weighted graph without labels, small nodes, and edges
+plot(g.weighted, vertex.size = 5, edge.arrow.size = 0.5, vertex.label.cex = 0,
+     vertex.color = "lightblue", edge.color = "gray",
+     edge.width = E(g.weighted)$normalized_performance, vertex.label = NA, 
+     edge.label = round(E(g.weighted)$weight, digits = 2), edge.label.cex = 0.7)
+
+# Set vertex colors
+V(g.weighted)$color <- ifelse(V(g.weighted)$name %in% df.football.transfer$dealing_club, "red", "blue")
+
+# Plot the directed graph with red nodes for dealing_club and blue nodes for club
+plot(g.weighted, vertex.size = 5, edge.arrow.size = 0.5, vertex.label.cex = 0,
+     edge.color = "gray", vertex.label = NA, vertex.color = V(g.weighted)$color,
+     edge.label = round(E(g.weighted)$weight, digits = 2), edge.label.cex = 0.7)
+
+# Create a data frame to print out the weights of the edges
+edge.list <- get.edgelist(g.weighted, names = TRUE)
+weights <- get.edge.attribute(g.weighted, "weight")
+weights.df <- data.frame(from = V(g.weighted)[edge.list[, 1]]$name,
+                         to = V(g.weighted)[edge.list[, 2]]$name,
+                         weight = weights)
+
+# Print out the weights in a dataframe
+weights.df
+
+```
+
+
+```{r }
+# Specify used graph
+g <- g.directed
+
+# Create graph with just connected clubs
+g <- induced.subgraph(g, which(degree(g) > 0))
+
+# Remove loops from the graph --> Huge impact speak with flo
+g <- simplify(g, remove.loops = TRUE)
+```
+
+```{r }
+# Assuming your directed graph is stored in an object called 'g'
+
+# Calculate in-degree and out-degree centrality measures
+in.degree <- data.frame(vertex = V(g)$name, in.degree = degree(g, mode = "in"))
+out.degree <- data.frame(vertex = V(g)$name, out.degree = degree(g, mode = "out"))
+
+# Find the top 5 clubs with the highest in-degree and out-degree centrality measures
+top.indegree <- in.degree[order(in.degree$in.degree, decreasing = TRUE), ][1:5, ]
+top.outdegree <- out.degree[order(out.degree$out.degree, decreasing = TRUE), ][1:5, ]
+
+# Print the top in-degree and out-degree clubs separately
+cat("Top 5 clubs with highest in-degree centrality:\n")
+print(top.indegree)
+
+cat("\n\nTop 5 clubs with highest out-degree centrality:\n")
+print(top.outdegree)
+```
+
+
+```{r }
+# Neighbors of the graph
+
+# Set the chosen club
+chosen.club <- "Bayern Munich"
+
+# Get the neighbors of the chosen club
+club.neighbors <- neighbors(g, chosen.club)
+
+# Create a subgraph consisting of the chosen club and its neighbors
+all.vertices.neighbors <- c(V(g)[club.neighbors], V(g)[chosen.club])
+g.club.neighbors <- induced_subgraph(g, all.vertices.neighbors)
+
+# Plot the subgraph with the chosen club in red and its neighbors in blue:
+plot(g.club.neighbors, vertex.color = ifelse(V(g.club.neighbors)$name == chosen.club, "red", "blue"), 
+     vertex.size = 5, edge.arrow.size = 0.2, vertex.label.cex = 0.8)
+
+# Get the degree (number of transfers) for each neighbor
+neighbor.degrees <- degree(g, club.neighbors, mode = "in")
+
+# Sort the neighbors based on their degree in descending order
+sorted.neighbors <- sort(neighbor.degrees, decreasing = TRUE, index.return = TRUE)
+
+# Select the top 5 neighbors based on their degree
+top.neighbors <- club.neighbors[sorted.neighbors$ix[1:5]]
+
+cat("\n\nTop neighbors of ", chosen.club, "with highest degree centrality:\n")
+print(top.neighbors)
+
+cat("\n\ Neighbors of ", chosen.club, "\n")
+print(club.neighbors)
+
+```
+
+```{r }
+# Neighbors based on weighted graph and normalized_performance index
+
+# Specify used graph
+g <- g.weighted
+
+# Create graph with just connected clubs
+g <- induced.subgraph(g, which(degree(g) > 0))
+
+# Remove loops from the graph --> Huge impact speak with flo
+g <- simplify(g, remove.loops = TRUE)
+
+# Set the chosen club
+chosen.club <- "Borussia Dortmund"
+
+# Get all incoming edges to the chosen club
+incoming.edges <- E(g)[.to(chosen.club)]
+
+# Add a weight column to the incoming edges
+weights <- get.edge.attribute(g, "weight", index = E(g))
+incoming.edges$weight <- weights[incoming.edges]
+
+# Sort the incoming edges based on their weights
+#sorted.edges <- incoming.edges[order(-incoming.edges$weight), ]
+
+# Create a subgraph consisting of the chosen club and its top 5 neighbors
+all.vertices.neighbors <- c(V(g)[top.neighbors], V(g)[chosen.club])
+g.club.neighbors <- induced_subgraph(g, all.vertices.neighbors)
+
+# Plot the subgraph with the chosen club in red as focal node and neighbors blue
+plot(g.club.neighbors, vertex.color = ifelse(V(g.club.neighbors)$name == chosen.club, "red", "blue"), 
+     vertex.size = 5, edge.label = round(E(g.weighted)$weight, digits = 10),
+     edge.arrow.size = 0.8, vertex.label.cex = 0.8, edge.label.cex = 0.8)
+```
+
+
+```{r }
+# Explorative Analyse
+```
+
+```{r }
+# Number of clubs
+unique.total.clubs <- NROW(unique(dt.filtered.data$club))
+print(unique.total.clubs)
+
+```
+
+
+```{r }
+# List and print the in transfers of chosen.club--------------------------------
+chosen.club <- "Borussia Dortmund"
+# Specify used graph
+g <- g.directed
+
+# Create graph with just connected clubs
+g <- induced.subgraph(g, which(degree(g) > 0))
+
+# Remove loops from the graph --> Huge impact speak with flo
+g <- simplify(g, remove.loops = TRUE)
+
+# Get the names of the players who transferred to or from the chosen club
+club.player <- unique(dt.filtered.data$name[dt.filtered.data$club == 
+                                              chosen.club])
+#print(club.player)
+
+# Get the rows for the chosen club
+dt.club.rows <- dt.filtered.data[dt.filtered.data$club == chosen.club, ]
+
+# Data table with relevant columns
+dt.transfers.chosen.club <- dt.filtered.data[dt.filtered.data$club == 
+                                               chosen.club, 
+                                             c("season",
+                                               "dealing_club",
+                                               "club", "name","position",
+                                               "normalized_performance")]
+
+
+# Get the names of the players who transferred to or from the chosen club
+player <- club.rows$name
+
+print(player)
+cat("\n")
+print(dt.transfers.chosen.club)
+
+```
+
+```{r }
+# Group by year and count the number of transfers per year
+dt.filtered.data.per.year <- dt.filtered.data[, .(n_transfers = .N), 
+                                       by = season][order(season)]
+print(dt.filtered.data.per.year)
+
+# Group by club and count the number of transfers
+dt.filtered.data.per.club <- dt.filtered.data[, .(n_transfers = .N), 
+                                       by = club][order(-n_transfers)]
+print(dt.filtered.data.per.club)
+
+# Group by club and year and count the number of transfers
+dt.filtered.data.per.club.year <- dt.filtered.data[, .(n_transfers = .N), 
+                                                         by = .(club, 
+                                                                season)][order(
+                                                                  season)]
+
+print(dt.filtered.data.per.club.year)
+
+```
+
+```{r }
+# Degree Distribution
+# Plot the degree distribution for our g.transfers.in network and calculate 
+# the statisitcs
+
+degree.subgraph <- degree(g)
+hist(degree(g), 
+     main = "Degree Distribution of the original g.clubs.subgraph", 
+     xlab = "Degree", ylab = "Number of clubs", col = "red", border = "white")
+
+cat("\n Statistical summary of the original graph:\n")
+mean(degree(g))
+transitivity(g, type = "average")
+average.path.length(g)
+summary(g)
+```
+
+```{r }
+# Get the unipartite projection 2 of clubs which show two clubs are connected
+# to each other if they have at least one player in common-----------------------
+
+#g.clubs.proj.2 <- bipartite.projection(g.transfers)$proj2
+
+# Test if th graph contains movie with a degree of 0----------------------------
+
+
+degrees.g <- degree(g)
+#isolated.clubs <- which(g.clubs == 0)
+
+cat("\nNumber of movies with a degree of zero in the projection 1 graph\n")
+#print(isolated.clubs)
+
+# Create and plot the subgraph with only connected movies including the summary
+# ------------------------------------------------------------------------------
+
+g.subgraph <- induced.subgraph(g, which(degree(g) > 0))
+
+plot(g.subgraph, layout = layout_with_fr, 
+     vertex.color = V(g.subgraph)$color, vertex.label = NA, 
+     vertex.size = 1, margin = -0.1, edge.width = 0.01, edge.arrow.size = 0.2)
+summary(g.subgraph)
+
+
+degree.centrality <- degree(g.subgraph, mode = "all")
+
+closeness <- closeness(g.subgraph)
+betweenness <- round(betweenness(g.subgraph), 4)
+eigenvector <- round(evcent(g.subgraph)$vector, 4)
+
+# Create and print a dataframe with centrality measures-------------------------
+
+df.centrality.measures.clubs <- data.frame(degree = degree.centrality,
+                                            closeness = closeness, 
+                                            betweenness = betweenness, 
+                                            eigenvector = eigenvector)
+
+print(df.centrality.measures.clubs)
+
+```
+
+```{r }
+
+# Normalized centrality measures for better interpretations---------------------
+
+normalized.degree <- round(degree(g.subgraph, normalized = TRUE), 4)
+normalized.closeness <- round(closeness(g.subgraph, normalize = TRUE), 4)
+normalized.betweenness <- round(betweenness(g.subgraph, 
+                                            normalize = TRUE), 4)
+
+
+# Degree centrality-------------------------------------------------------------
+
+df.top.degree.centrality <- data.frame(degree = 
+                                         head(sort(degree.centrality, 
+                                                   decreasing = TRUE), 20), 
+                                       normalized_degree = 
+                                         head(sort(normalized.degree, 
+                                                   decreasing = TRUE), 20))
+
+print("Top 20 clubs with highest degree centrality:\n")
+print(df.top.degree.centrality)
+
+# Closeness centrality----------------------------------------------------------
+
+df.top.closeness <- data.frame(closeness = 
+                                 head(sort(closeness, 
+                                           decreasing = TRUE), 20),
+                               normalized_closeness = 
+                                 head(sort(normalized.closeness, 
+                                           decreasing = TRUE), 20))
+
+print("Top 20 clubs with highest closeness centrality:\n")
+print(df.top.closeness)
+
+# Betweenness centrality--------------------------------------------------------
+
+df.top.betweenness <- data.frame(betweenness = 
+                                   head(sort(betweenness, 
+                                             decreasing = TRUE), 20),
+                                 normalized_betweenness = 
+                                   head(sort(normalized.betweenness, 
+                                             decreasing = TRUE), 20))
+print("Top 20 clubs with highest betweenness centrality:\n")
+print(df.top.betweenness)
+
+# Eigenvector centrality--------------------------------------------------------
+
+df.top.eigenvector <- data.frame( eigenvector = 
+                                    head(sort(eigenvector, 
+                                              decreasing = TRUE), 20))
+print("Top 20 clubs with highest eigenvector centrality:\n")
+print(df.top.eigenvector)
+```
+
+
+
+
+
+```{r }
+# Give me from common neighbors the ids of the neighbors save in a vector and give it as vids to the fucntions
+# Create jaccard matrix
+
+# Measure 2: Jaccard Index
+# Compute similarity to a specific club (e.g. Borussia Dortmund)
+target_club <- "Borussia Dortmund"
+similarity.jaccard <- similarity(g, v = c(target_club, "Bayern Munich","Chelsea FC","Genoa CFC"), method = "jaccard")[1,4]
+
+similarity.jaccard.1 <- similarity(g, v = c("Bayern Munich","Genoa CFC"), method = "jaccard")[1,2]
+similarity.jaccard.2 <- similarity(g, v = c("Bayern Munich","Eintracht Frankfurt"), method = "jaccard")[1,2]
+similarity.jaccard.3 <- similarity(g, v = c("Bayern Munich","Cagliari Calcio"), method = "jaccard")[1,2]
+similarity.jaccard.4 <- similarity(g, v = c("Bayern Munich","Hellas Verona"), method = "jaccard")[1,2]
+similarity.jaccard.5 <- similarity(g, v = c("Bayern Munich","Chelsea FC"), method = "jaccard")[1,2]
+
+cat("\nCompare calues with common neighbors\n")
+
+print(similarity.jaccard.1)
+print(similarity.jaccard.2)
+print(similarity.jaccard.3)
+print(similarity.jaccard.4)
+print(similarity.jaccard.5)
+
+test.jaccard.matrix <- similarity.jaccard(g, vids = c("Bayern Munich","Chelsea FC","Genoa CFC","Hellas Verona",
+                                       "Cagliari Calcio", "Eintracht Frankfurt"), mode = c("total"), loops = FALSE)
+cat("\njaccard\n")
+print(test.jaccard.matrix)
+
+# Measure 3: Adamic-Adar Index
+similarity.adamic <- similarity(g, v = target_club, method = "invlogweight")[6] # Index welchen wert man möchte
+
+test.adamic.matrix <- similarity.invlogweighted(g, vids = c("Bayern Munich",
+                                                            "Chelsea FC",
+                                                            "Genoa CFC",
+                                                            "Hellas Verona", 
+                                                            "Cagliari Calcio", 
+                                                    "Eintracht Frankfurt"), 
+                                                mode= c("total"))[6]
+cat("\nadamic\n")
+print(test.adamic.matrix)
+
+# Dice
+test.dice.matrix <- similarity.dice(g, vids = c("Bayern Munich","Chelsea FC",
+                                                "Genoa CFC",
+                                                "Hellas Verona", 
+                                                "Cagliari Calcio",
+                                                "Eintracht Frankfurt"), 
+                                    mode= c("all"), loops=FALSE)
+cat("\ndice\n")
+print(test.dice.matrix)
+
+
+```
+
+```{r }
+
+# Predictions
+# Choose club ------------------------------------------------------------------
+club.select <- "Bayern Munich"
+
+# Filter the rows to include only last five seasons ----------------------------
+df.football.5yrs <- subset(df.football.transfer, season >= 2017 & season <= 2021)
+
+# Keep only the relevant columns -----------------------------------------------
+df.football.5yrs <- subset(df.football.5yrs, 
+                           select = c("dealing_club", "club", "name"))
+
+# Create directed graph --------------------------------------------------------
+g.football.5yrs <- graph_from_data_frame(df.football.transfer[, 
+                                                              c("dealing_club",
+                                                                "club")], 
+                                         directed = TRUE)
+
+# Get predicted edges ----------------------------------------------------------
+m.predicted.edges <- as.matrix(cocitation(g.football.5yrs) * 
+                                 (1 - get.adjacency(g.football.5yrs)))
+
+df.predicted.edges <- as.data.frame(which(m.predicted.edges > 0, 
+                                           arr.ind = TRUE))
+
+colnames(df.predicted.edges) <- c("dealing_club", "club")
+
+df.predicted.edges$transfer_weight <- m.predicted.edges[m.predicted.edges > 0]
+
+df.predicted.edges$dealing_club <- 
+  rownames(m.predicted.edges)[df.predicted.edges$dealing_club]
+
+df.predicted.edges$club <- 
+  rownames(m.predicted.edges)[df.predicted.edges$club]
+
+# Remove self-loops where dealing club and club are the same -------------------
+df.predicted.edges <- subset(df.predicted.edges, dealing_club != club)
+
+# Normalize the transfer_weight column -----------------------------------------
+max.transfer.weight <- max(df.predicted.edges$transfer_weight)
+
+df.predicted.edges$transfer_prob <- round(df.predicted.edges$transfer_weight / 
+                                            max.transfer.weight, 2)
+
+# Filter edges to only include those with selected club as target --------------
+df.predicted.edges <- df.predicted.edges[df.predicted.edges$club == 
+                                             club.select, ]
+df.predicted.edges <- df.predicted.edges[df.predicted.edges$dealing_club != 
+                                             club.select, ]
+
+# Keep only the relevant columns -----------------------------------------------
+df.predicted.edges <- subset(df.predicted.edges, 
+                             select=c("dealing_club", "club", "transfer_prob"))
+
+# Remove the index column by setting row.names to NULL -------------------------
+row.names(df.predicted.edges) <- NULL
+
+# Sort edges by transfer probability -------------------------------------------
+df.predicted.edges <- df.predicted.edges[order(df.predicted.edges$transfer_prob, 
+                                                 decreasing = TRUE), ]
+df.top.5.pred.dealing.clubs <- df.predicted.edges[1:5, ]
+rownames(df.top.5.pred.dealing.clubs) <- NULL
+
+# Add a new column containing the importance in the list
+df.top.5.pred.dealing.clubs <- df.top.5.pred.dealing.clubs %>% 
+  mutate(importance = row_number())
+df.top.5.pred.dealing.clubs <- 
+  df.top.5.pred.dealing.clubs[c("importance", 
+                                names(df.top.5.pred.dealing.clubs)
+                                [-which(names(df.top.5.pred.dealing.clubs) == 
+                                          "importance")])]
+
+
+
+# Print the top 5 predicted transfers ------------------------------------------
+cat("Top 5 predicted transfers for", club.select, ":\n")
+print(df.top.5.pred.dealing.clubs)
+
+```
+
+```{r }
+
+# Create subgraph with dealing clubs in top 5 predicted transfers
+subgraph <- induced.subgraph(g.football.5yrs, df.top.5.pred.dealing.clubs$dealing_club)
+
+# Create a vector of vertex colors for plotting
+vertex.colors <- rep("blue", vcount(subgraph))
+chosen.club <- V(subgraph)[name == club.select]
+vertex.colors[which(V(subgraph) == chosen.club)] <- "red"
+
+# Plot subgraph
+plot(subgraph, 
+     vertex.size = 10, 
+     vertex.label.color = "black", 
+     vertex.label.cex = 0.8, 
+     vertex.color = vertex.colors, 
+     vertex.frame.color = "gray", 
+     edge.arrow.size = 0.5, 
+     edge.color = "gray")
+
+```
+```{r }
+
+# Choose club
+chosen.club <- "Bayern Munich"
+
+# Filter the rows to include only last five seasons
+df.football.5yrs <- subset(df.football.transfer, season >= 2017 & season <= 2021)
+
+# Keep only the relevant columns
+df.football.5yrs <- subset(df.football.5yrs, select = c("dealing_club", "club", "name"))
+
+# Create directed graph
+g.football.5yrs <- graph_from_data_frame(df.football.transfer[, c("dealing_club", "club")], directed = TRUE)
+
+# Get predicted edges
+m.predicted.edges <- as.matrix(cocitation(g.football.5yrs) * (1 - get.adjacency(g.football.5yrs)))
+df.predicted.edges <- as.data.frame(which(m.predicted.edges > 0, arr.ind = TRUE))
+colnames(df.predicted.edges) <- c("dealing_club", "club")
+df.predicted.edges$transfer_weight <- m.predicted.edges[m.predicted.edges > 0]
+df.predicted.edges$dealing_club <- rownames(m.predicted.edges)[df.predicted.edges$dealing_club]
+df.predicted.edges$club <- rownames(m.predicted.edges)[df.predicted.edges$club]
+
+# Remove self-loops where dealing club and club are the same
+df.predicted.edges <- subset(df.predicted.edges, dealing_club != club)
+
+# Normalize the transfer_weight column
+max.transfer.weight <- max(df.predicted.edges$transfer_weight)
+df.predicted.edges$transfer_prob <- round(df.predicted.edges$transfer_weight / max.transfer.weight, 2)
+
+# Filter edges to only include those with selected club as target
+df.predicted.edges <- df.predicted.edges[df.predicted.edges$club == chosen.club, ]
+df.predicted.edges <- df.predicted.edges[df.predicted.edges$dealing_club != chosen.club, ]
+
+# Keep only the relevant columns
+df.predicted.edges <- subset(df.predicted.edges, select=c("dealing_club", "club", "transfer_prob"))
+
+# Remove the index column by setting row.names to NULL
+row.names(df.predicted.edges) <- NULL
+
+# Sort edges by transfer probability
+df.predicted.edges <- df.predicted.edges[order(df.predicted.edges$transfer_prob, decreasing = TRUE), ]
+
+# Select the top 5 dealing clubs with potential new connections to the chosen club
+df.top.5.pred.dealing.clubs <- df.predicted.edges[1:5, ]
+rownames(df.top.5.pred.dealing.clubs) <- NULL
+
+# Add a new column containing the importance in the list
+df.top.5.pred.dealing.clubs <- df.top.5.pred.dealing.clubs %>% 
+  mutate(importance = row_number())
+
+# Remove existing edges
+#g.football.5yrs <- delete.edges(g.football.5yrs, E(g.football.5yrs))
+
+# Create subgraph with potential connections of the dealing clubs to the chosen club
+subgraph <- induced.subgraph(g.football.5yrs, c(chosen.club, df.top.5.pred.dealing.clubs$dealing_club))
+
+# Set vertex colors for chosen club and dealing clubs
+V(subgraph)$color <- ifelse(V(subgraph)$name == chosen.club, "red", "blue")
+
+# Plot subgraph
+plot(subgraph, 
+     vertex.size = 10, 
+     vertex.label.color = "black", 
+     vertex.label.cex = 0.8, 
+     vertex.color = vertex.colors, 
+     vertex.frame.color = "gray", 
+     edge.arrow.size = 0.5, 
+     edge.color = "gray")
+```
+
+```{r }
+# Create directed graph from df.top.5.pred.dealing.clubs
+g.test <- graph_from_data_frame(df.top.5.pred.dealing.clubs[, 
+                                                       c("dealing_club",
+                                                         "club", "transfer_prob")],
+                           directed = TRUE)
+
+# Set edge weights to transfer_probability
+E(g.test)$weight <- df.top.5.pred.dealing.clubs$transfer_prob
+E(g.test)$weight[E(g.test)$weight <= 0] <- NA
+
+
+# Set vertex colors for chosen club and dealing clubs
+V(g.test)$color <- ifelse(V(g.test)$name == chosen.club, "red", "blue")
+
+# Plot graph
+plot(g.test, 
+     vertex.size = 10, 
+     vertex.label.color = "black", 
+     vertex.label.cex = 0.8, 
+     vertex.color = V(g.test)$color, 
+     vertex.frame.color = "gray", 
+     edge.arrow.size = 0.5, 
+     edge.color = "gray", 
+     edge.width = E(g.test)$weight*10,
+     edge.label = round(E(g.test)$weight, digits = 2))
+```
+```{r }
+
+# Create directed graph from df.top.5.pred.dealing.clubs
+g.test <- graph_from_data_frame(df.top.5.pred.dealing.clubs[, 
+                                                       c("dealing_club",
+                                                         "club", "transfer_prob")],
+                           directed = TRUE)
+
+# Set edge weights to transfer_probability
+E(g.test)$weight <- df.top.5.pred.dealing.clubs$transfer_prob
+
+# Set vertex colors for chosen club and dealing clubs
+V(g.test)$color <- ifelse(V(g.test)$name == chosen.club, "red", "blue")
+
+# Set edge color palette
+edge.colors <- colorRampPalette(c("yellow", "red"))(100)
+
+# Plot graph
+plot(g.test, 
+     vertex.size = 10, 
+     vertex.label.color = "black", 
+     vertex.label.cex = 0.8, 
+     vertex.color = V(g.test)$color, 
+     vertex.frame.color = "gray", 
+     edge.arrow.size = E(g.test)$weight*5, 
+     edge.width = E(g.test)$weight*25,
+     edge.label = round(E(g.test)$weight, digits = 2),
+     edge.color = edge.colors[cut(E(g.test)$weight, breaks = 100)])
+     
+```
+
+```{r }
+# At the end other measures to analyse a directed network
+
+# 1. Modularity
+#modularity(g.directed, membership = V(g.directed)$club)
+
+# 2. Clustering coefficient
+transitivity(g.directed, type = "average")
+
+# 3. PageRank
+pr_norm <- scale(pr)
+pr <- page_rank(g.directed)$vector
+df.pr <- data.frame(club = names(pr), pagerank = pr)
+
+# Scale pagerank between 0 and 1
+df.pr$pagerank <- scale(df.pr$pagerank, 
+                         center = min(df.pr$pagerank), 
+                         scale = max(df.pr$pagerank) - min(df.pr$pagerank))
+df.pr <- df.pr[order(df.pr$pagerank, decreasing = TRUE), ]
+head(df.pr)
+
+# 4. Assortativity
+V(g.directed)$market_value <- df.football.transfer$market_value[df.football.transfer$club == V(g.directed)$name]
+assortativity(g.directed, V(g.directed)$market_value, method = "pearson")
+```
