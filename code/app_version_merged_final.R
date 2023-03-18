@@ -111,7 +111,7 @@ dt.summary.table <- data.frame(
 
 # UI SECTION ----
 ui <- navbarPage(
-  title = "Football Talent Scout Europe",
+  title = "International Football Talent Scout",
   theme = shinytheme("cosmo"),
   
   
@@ -119,9 +119,46 @@ ui <- navbarPage(
   tabPanel(title = "Introduction", 
            fluidRow(
              column(12,
-                    h2("Welcome to our Football Talent Scout App!"),
-                    p("This is our introductory page where we present you the business
-                       value of this app.")
+                    h2("Welcome to Football Talent Scout International!"),
+                    p("Welcome to International Football Talent Scout App, the 
+                    ultimate app for Football Talent Scouts. According to the 
+                    principle of minimalist and clean design meets an incredible
+                    variety of functionalities, so you can concentrate on the 
+                    essentials and not be distracted by a lot of bells and 
+                    whistles around it. Therefore, this app is more of an 
+                    analysis tool for the professional instead of a leisure 
+                    tool for the big market, making it perfect for you as a 
+                    talent scout of a prestigious international club. Our app 
+                    provides a comprehensive overview of past international 
+                    football transfers, including information on market value, 
+                    transfer fees, receiving and trading clubs, and more.
+                    Our app offers a variety of functionalities that make it an 
+                    essential tool for any Football Talent Scout. The 
+                    descriptive statistics tab offers general summary 
+                    statistics about the data set, with relevant filters such 
+                    as season, year, and country. With our network exploration 
+                    tab, you can view an interactive map that displays the 
+                    movement of football transfers over time. The third tab, 
+                    network analysis, allows users to interactively explore the 
+                    network and predict potential new trades based on historical
+                    data. Our app also provides a wealth of information to help 
+                    talent scouts identify the most important factors to focus 
+                    on when scouting for new talent. For example, you can easily
+                    determine which countries are most important for identifying
+                    new players. While our network analysis is based on a 
+                    reduced data set, our app provides users with valuable 
+                    insights into past football transfers and offers predictions
+                    for potential new trades. It is important to note that our 
+                    data set is not automatically updated to the current date, 
+                    but we are constantly working to improve our app and provide
+                    the most up-to-date information possible. Overall, our app 
+                    is structured to provide a seamless user experience. Whether
+                    you are an experienced talent scout or just starting out, 
+                    Football Talent Scout International is the perfect app to 
+                    help you stay ahead of the competition. Thank you for 
+                    choosing Football Talent Scout International. We hope our 
+                    app will help you discover the next generation of 
+                    International football stars!")
              )
            )
   ),
@@ -165,8 +202,9 @@ ui <- navbarPage(
                       fluidRow(
                         column(12,
                                h2("General Statistics"),
-                               p("In this section we will provide general statistics 
-                                 on the data by using the most relevant metrics."),
+                               p("In this section we will provide general 
+                               statistics on the data by using the most relevant
+                                 metrics."),
                                br()
                         )
                       ),
@@ -176,8 +214,16 @@ ui <- navbarPage(
                           fluidRow(
                             column(6,
                                    h3("Filter the dataset"),
-                                   sliderInput("season.statistics", "Season", min = min(data$season), max = max(data$season), value = c(min(data$season), max(data$season)), step = 1, sep =""),
-                                   selectInput("summary.f1", "Countries", choices = c("Select All", unique(data$country)))
+                                   sliderInput("season.statistics", "Season", 
+                                               min = min(data$season), 
+                                               max = max(data$season), 
+                                               value = c(min(data$season), 
+                                                         max(data$season)), 
+                                               step = 1, sep =""),
+                                   selectInput("summary.f1", "Countries", 
+                                               choices = c("Select All", 
+                                                           unique(data$country))
+                                               )
                             ),
                             column(6,
                                    style = "border-left: 1px solid #999; padding-left: 10px;",

@@ -27,7 +27,7 @@ map <- get_stamenmap(bbox, zoom = 2, maptype = "toner-lite")
 
 # NEW LOAD DATA
 
-df.football.transfer <- read.csv(file = '../../data/football-transfers.csv')
+df.football.transfer <- read.csv(file = '../data/football-transfers.csv')
 
 data <- df.football.transfer
 
@@ -109,20 +109,51 @@ dt.summary.table <- data.frame(
 )
 
 
-# UI SECTION ----
+# UI SECTION -------------------------------------------------------------------
 ui <- navbarPage(
-  title = "Football Talent Scout Europe",
+  title = "Football Talent Scout International",
   theme = shinytheme("cosmo"),
   
   
-  # 1. INTRODUCTION PAGE ----
+  # 1. INTRODUCTION PAGE -------------------------------------------------------
   tabPanel(title = "Introduction", 
            fluidRow(
-             column(12,
-                    h2("Welcome to our Football Talent Scout App!"),
-                    p("This is our introductory page where we present you the business
-                       value of this app.")
-             )
+             column(1),
+             column(10, 
+                    h2("Welcome to Football Talent Scout International!"),
+                    tags$br(),
+                    p("Welcome to Football Talent Scout International, your 
+                    go-to app for global football scouting."),
+                    p("Discover comprehensive data on past football transfers, 
+                    including performance, market value, transfer fees, and club 
+                    information."),
+                    p("Our app offers tailored features for Football Talent 
+                    Scouts. The Descriptive Stats tab presents an overview of 
+                    the data set, with filters such as season, year, and 
+                    country. The Network Exploration tab showcases an 
+                    interactive map, illustrating football transfer trends over 
+                    time. The Network Analysis tab allows users to delve into 
+                    the network and predict potential trades based on historical 
+                    data."),
+                    p("Benefit from valuable insights to help identify top 
+                    talent using customizable metrics. Although our network 
+                    analysis uses a reduced data set and isn't updated 
+                    automatically, we're committed to continuously improving our 
+                    app and providing the latest information."),
+                    p("Football Talent Scout International is designed for a 
+                    seamless user experience, catering to both veteran scouts 
+                    and newcomers. Gain a competitive edge with our 
+                    cutting-edge app."),
+                    p("Thank you for choosing Football Talent Scout 
+                    International. We're here to help you uncover the next 
+                    generation of football prodigies!"),
+                    tags$br(),
+                    img(src = "football-stadium-unsplash.jpg", height = "auto", 
+                        width = "100%", style = "display: block; margin-left: 
+                        auto; margin-right: auto;"),
+                    p("Image source: Unsplash (open-source)")
+             ),
+             column(1)
            )
   ),
   
@@ -231,29 +262,67 @@ ui <- navbarPage(
                       fluidPage(
                         titlePanel("Overview about the football Transfers Network by country"),
                         
-                        sidebarLayout(
-                          sidebarPanel(
-                            h4("Choose a season, country, club, position"),
-                            selectInput("season_3_2", "Select a season:",
-                                        choices = 2004:2021, selected = 2021, width = "100%"),
-                            uiOutput("country_ui_3_2"),
-                            uiOutput("position_ui_3_2")
-                          ),
-                          
-                          mainPanel(
-                            visNetworkOutput("directed_graph"),
-                            verbatimTextOutput("graph_summary"),
-                            verbatimTextOutput("graph_measures"),
-                            dataTableOutput("centrality_table"),
-                            plotOutput("degree_distribution"),
+                        wellPanel(
+                          wellPanel(
                             fluidRow(
-                              column(6, dataTableOutput("in_degree_table")),
-                              column(6, dataTableOutput("out_degree_table"))
+                              column(5,
+                                     style = "border-right: 1px solid #999; padding-left: 10px;",
+                                     h3("Choose a season, country, club, position"),
+                                     selectInput("season_3_2", "Select a season:",
+                                                 choices = 2004:2021, selected = 2021, width = "100%"),
+                                     selectInput("country_3_2", "Country:", choices = NULL),
+                                     selectInput("position_3_2", "Position:", choices = c("All")),
+                                     tags$br(),
+                                     tags$br(),
+                                     h4("This page helps to get an overview of transfers by countries."),
+                                     tags$p("Use the following filters:"),
+                                     tags$p("- Use filters on the left to select a season/year and position to view the transfer network of the country."),
+                                     tags$p("- Highlight a node in the interactive graph to see connections and centrality measures."),
+                                            tags$p("- Zoom into the graph to see player names and transfer direction."),
+                                     tags$br(),
+                                     tags$p("For more detailed information about statistical measures, degree distribution as well as in and out degrees see the tables below.")
+                              ),
+                              column(7,
+                                     h3("Interactive Transfer Network Graph"),
+                                     visNetworkOutput("directed_graph"),
+                              )
+                            )
+                          )
+                          ),
+                        
+                        wellPanel(
+                          tags$h3("Statistical Measures"),
+                          tags$p("The statistical measures of the transfer network are displayed below, including average degree, clustering coefficient, and average path length."),
+                          verbatimTextOutput("graph_summary"),
+                          verbatimTextOutput("graph_measures")
+                        ),
+                        
+                        wellPanel(
+                          tags$h3("Centrality Measures Table"),
+                          tags$p("The table below shows centrality measures for the filtered graph, including degree, closeness, betweenness, eigenvector, and PageRank."),
+                          dataTableOutput("centrality_table")
+                        ),
+                        
+                        wellPanel(
+                          tags$h3("Degree Distribution Histogram"),
+                          tags$p("The histogram below displays the degree distribution of the selected country's transfer network."),
+                          plotOutput("degree_distribution")
+                        ),
+                        
+                        wellPanel(
+                          fluidRow(
+                            column(6,
+                                   tags$h3("In-degree Table"),
+                                   tags$p("The table below shows the in-degree of each club in the transfer network."),
+                                   dataTableOutput("in_degree_table")),
+                            column(6,
+                                   tags$h3("Out-degree Table"),
+                                   tags$p("The table below shows the out-degree of each club in the transfer network."),
+                                   dataTableOutput("out_degree_table"))
                             )
                           )
                         )
                       )
-                    )
              ),
   
   # NETWORK ANALYSIS PAGE ----
@@ -296,31 +365,49 @@ ui <- navbarPage(
                       )
              ),
              
-             tabPanel(title = "4.2 Football Transfers by performance index",
+             tabPanel(title = "4.2 Football Transfers by Performance Index",
                       fluidPage(
-                        titlePanel("Football Transfers Network Exploration by self-developed performance index "),
-                        sidebarLayout(
-                          sidebarPanel(
-                            h4("Choose a season, country, club, position"),
-                            selectInput("season_4_2", "Select a season:",
-                                        choices = 2004:2021, selected = 2021, width = "100%"),
-                            uiOutput("country_ui_4_2"),
-                            uiOutput("club_ui_4_2"),
-                            uiOutput("position_ui_4_2")
-                          ),
-                          
-                          mainPanel(
-                            tags$h4("Top 10 transfers to chosen club by normalized performance index",
-                                    style = "font-weight: bold; font-size: 24px; text-align: center"),
-                            fluidRow(
-                              column(6, visNetworkOutput("performers_graph")),
-                              column(6, plotOutput("scatter_plot"))
+                        titlePanel("Football Transfers Network Exploration by Self-Developed Performance Index"),
+                        wellPanel(
+                          h3("Choose a season, country, club, position"),
+                          fluidRow(
+                            column(3,
+                                   selectInput("season_4_2", "Select a season:",
+                                               choices = 2004:2021, selected = 2021, width = "100%")
                             ),
-                            tags$h4("Detailed informations about the transfers displayed above",
-                                    style = "font-weight: bold; font-size: 24px; text-align: center"),
-                            dataTableOutput("performers_table")
+                            column(3,
+                                   selectInput("country_4_2", "Country:", choices = NULL)
+                            ),
+                            column(3,
+                                   selectInput("club_4_2", "Club:", choices = NULL)
+                            ),
+                            column(3,
+                                   selectInput("position_4_2", "Position:", choices = c("All"))
+                            )
                           )
-                        )
+                        ),
+                        
+                        wellPanel(
+                          fluidRow(
+                            column(6,
+                                   h3("Top Performers Graph"),
+                                   visNetworkOutput("performers_graph")    
+                            ),
+                            column(6,
+                                   h3("Performance by Position and Age"),
+                                   plotOutput("scatter_plot")
+                            )
+                          )
+                        ),
+                          
+                        wellPanel(
+                          fluidRow(
+                            column(12,
+                                   h3("Detailed informations about the transfers displayed above"),
+                                   dataTableOutput("performers_table")
+                            )
+                          )
+                        )  
                       )
              ),
              
@@ -328,20 +415,30 @@ ui <- navbarPage(
                       fluidPage(
                         titlePanel("Football Transfers Predictions (Based on Season 2017-2021)"),
                         
-                        sidebarLayout(
-                          sidebarPanel(
-                            h4("Choose a country, club, position and number of players to show"),
-                            selectInput("country_4_3", "Country:", unique(data$country)),
-                            uiOutput("club_ui_4_3"),
-                            selectInput("position_4_3", "Position:", c("All", "Goalkeeper", "Defense", "Midfield", "Attack")),
-                            selectInput("num_rows", "Number of players to display:", choices = c(10, 20, 30, 50))
-                          ),
-                          
-                          mainPanel(
-                            h4("Next Possible Transfers"),
-                            visNetworkOutput("prediction_graph", width = "70%", height = "500px"),
-                            uiOutput("table_title"),
-                            tableOutput("player_table")
+                        wellPanel(
+                          wellPanel(
+                            fluidRow(
+                              column(6,
+                                     h3("Choose a country, club, position, no. of players"),
+                                     selectInput("country_4_3", "Country:", unique(data$country)),
+                                     uiOutput("club_ui_4_3"),
+                                     selectInput("position_4_3", "Position:", c("All", "Goalkeeper", "Defense", "Midfield", "Attack")),
+                                     selectInput("num_rows", "Number of players to display:", choices = c(10, 20, 30, 50))
+                              ),
+                              column(6,
+                                     style = "border-left: 1px solid #999; padding-left: 10px;",
+                                     h3("Next Possible Transfers"),
+                                     visNetworkOutput("prediction_graph", width = "100%", height = "500px")
+                              )
+                            )
+                          )
+                        ),
+                        
+                        wellPanel(
+                          fluidRow(
+                            column(12,
+                                   uiOutput("table_title"),
+                                   tableOutput("player_table"))
                           )
                         )
                       )
@@ -353,7 +450,7 @@ ui <- navbarPage(
 
 
 # SERVER SECTION ----
-server <- function(input, output) {
+server <- function(input, output, session) {
   
   # 2. DESCRIPTIVE STATISTICS
   # 2.1.1 Table with available variables
@@ -544,7 +641,7 @@ server <- function(input, output) {
         ggplot(aes(x = reorder(country, -avg_market_value), y = avg_market_value)) +
         geom_bar(stat = "identity", fill = "#0066cc", color = "white") +
         labs(x = "Country",
-             y = "Average Market Value (in Millions)") +
+             y = "Average Market Value") +
         theme_minimal() +
         theme(plot.margin = margin(15, 15, 15, 15),
               plot.background = element_rect(fill = "#F5F5F5"),
@@ -571,7 +668,7 @@ server <- function(input, output) {
         ggplot(aes(x = reorder(club, -avg_market_value), y = avg_market_value)) +
         geom_bar(stat = "identity", fill = "#0066cc", color = "white") +
         labs(x = "Club",
-             y = "Average Market Value (in Millions)") +
+             y = "Average Market Value") +
         theme_minimal() +
         theme(plot.margin = margin(15, 15, 15, 15),
               plot.background = element_rect(fill = "#F5F5F5"),
@@ -607,8 +704,8 @@ server <- function(input, output) {
   season.data_3_2 <- reactive({
     data %>%
       filter(season == input$season_3_2) %>%
-      filter(country == input$country) %>%
-      filter(if (input$position != "All") position_category == input$position else TRUE)
+      filter(country == input$country_3_2) %>%
+      filter(if (input$position_3_2 != "All") position_category == input$position_3_2 else TRUE)
   })
   
   # Reactive function to update country choices based on selected season
@@ -619,22 +716,21 @@ server <- function(input, output) {
       pull(country)
   })
   
-  
-  # Update the country input based on the selected season
-  output$country_ui_3_2 <- renderUI({
-    country.filtered_3_2 <- data %>% filter(season == input$season_3_2) %>% distinct(country) %>% pull(country)
-    selectInput("country", "Country:", choices = country.filtered_3_2)
+  # Observe the selected season and update the country input
+  observe({
+    req(input$season_3_2)
+    updateSelectInput(session, "country_3_2", "Country:", choices = country.choices_3_2())
   })
   
-  output$position_ui_3_2 <- renderUI({
-    req(input$country) # Ensure input$country is available before proceeding
+  # Observe the selected country and update the position input
+  observe({
+    req(input$country_3_2)
     position.filtered_3_2 <- data %>%
-      filter(season == input$season_3_2, country == input$country) %>%
+      filter(season == input$season_3_2, country == input$country_3_2) %>%
       distinct(position_category) %>%
       pull(position_category)
-    selectInput("position", "Position:", choices = c("All", position.filtered_3_2))
+    updateSelectInput(session, "position_3_2", "Position:", choices = c("All", position.filtered_3_2))
   })
-  
   
   # Create the directed graph
   directed.graph <- reactive({
@@ -733,7 +829,7 @@ server <- function(input, output) {
       df.centrality <- df.centrality %>% filter(club_name == selected.club_3_2())
     }
     df.centrality
-  }, options = list(searching = FALSE))
+  }, options = list(pageLength = 10, autoWidth = TRUE, searching = FALSE))
   
   # Render the degree distribution histogram
   output$degree_distribution <- renderPlot({
@@ -767,7 +863,7 @@ server <- function(input, output) {
     }
     
     in.degree
-  }, options = list(searching = FALSE))
+  }, options = list(pageLength = 10, autoWidth = TRUE, searching = FALSE))
   
   # Render the out-degree table
   output$out_degree_table <- renderDataTable({
@@ -779,7 +875,7 @@ server <- function(input, output) {
     }
     
     out.degree
-  }, options = list(searching = FALSE))
+  }, options = list(pageLength = 10, autoWidth = TRUE, searching = FALSE))
   
   
   # 4. NETWORK Analysis
@@ -846,13 +942,11 @@ server <- function(input, output) {
   
   season.data_4_2 <- reactive({
     data %>%
-      filter(season == input$season_4_2) %>%
-      filter(country == input$country) %>%
-      filter(if (input$position != "All") position_category == input$position else TRUE)
+      filter(season == input$season_4_2, country == input$country_4_2) %>%
+      filter(if (input$position_4_2 != "All") position_category == input$position_4_2 else TRUE)
   })
   
   # Reactive function to update country choices based on selected season
-  
   country.choices_4_2 <- reactive({
     data %>%
       filter(season == input$season_4_2) %>%
@@ -863,37 +957,30 @@ server <- function(input, output) {
   # Reactive function to update position choices based on selected season, country, and club
   position.choices_4_2 <- reactive({
     data %>%
-      filter(season == input$season_4_2, country == input$country, club == input$club) %>%
+      filter(season == input$season_4_2, country == input$country_4_2, club == input$club_4_2) %>%
       distinct(position_category) %>%
       pull(position_category)
   })
-
   
-  # Update the position input based on the selected season, country, and club
-  output$position_ui_4_2 <- renderUI({
-    req(input$club) # Ensure input$club is available before proceeding
-    position.filtered_4_2 <- data %>%
-      filter(season == input$season_4_2, country == input$country, club == input$club) %>%
-      distinct(position_category) %>%
-      pull(position_category)
-    selectInput("position", "Position:", choices = c("All", position.filtered_4_2))
+  observe({
+    updateSelectInput(session, "country_4_2", "Country:", choices = country.choices_4_2())
   })
   
-  # Update the country input based on the selected season
-  output$country_ui_4_2 <- renderUI({
-    countries.filtered_4_2 <- data %>% filter(season == input$season_4_2) %>% distinct(country) %>% pull(country)
-    selectInput("country", "Country:", choices = countries.filtered_4_2)
+  observe({
+    req(input$country_4_2) # Ensure input$country_4_2 is available before proceeding
+    clubs.filtered_4_2 <- data %>% filter(season == input$season_4_2, country == input$country_4_2) %>% distinct(club) %>% pull(club)
+    updateSelectInput(session, "club_4_2", "Club:", choices = clubs.filtered_4_2)
   })
   
-  output$club_ui_4_2 <- renderUI({
-    req(input$country) # Ensure input$country is available before proceeding
-    clubs.filtered_4_2 <- data %>% filter(season == input$season_4_2, country == input$country) %>% distinct(club) %>% pull(club)
-    selectInput("club", "Club:", choices = clubs.filtered_4_2)
+  observe({
+    req(input$club_4_2) # Ensure input$club_4_2 is available before proceeding
+    position.filtered_4_2 <- position.choices_4_2()
+    updateSelectInput(session, "position_4_2", "Position:", choices = c("All", position.filtered_4_2))
   })
   
   # Plot directed graph interactive of top performers
   df.performers <- reactive({
-    season.filtered_4_2 <- season.data_4_2() %>% filter(country == input$country, club == input$club)
+    season.filtered_4_2 <- season.data_4_2() %>% filter(country == input$country_4_2, club == input$club_4_2)
     
     # Filter for top performers based on age and performance score, and keep only top 20
     performers.top <- season.filtered_4_2[order(-season.filtered_4_2$normalized_performance), ][1:10, ]
@@ -925,7 +1012,7 @@ server <- function(input, output) {
   
   # Create a table of detailed informations about top perfomers
   filtered.data_4_2 <- reactive({
-    season.filtered_4_2 <- season.data_4_2() %>% filter(country == input$country, club == input$club)
+    season.filtered_4_2 <- season.data_4_2() %>% filter(country == input$country_4_2, club == input$club_4_2)
     
     # Filter for top performers based on age and performance score, and keep only top 20
     df.performers.top <- season.filtered_4_2[order(-season.filtered_4_2$normalized_performance), ][1:10, ]
@@ -947,8 +1034,7 @@ server <- function(input, output) {
       geom_point(size = 2, alpha = 0.6) +
       scale_color_brewer(palette = "Set1") +
       scale_y_continuous(labels = scales::comma) +
-      labs(x = "Age", y = "Normalized Performance",
-           title = "Performance by Position and Age")+
+      labs(x = "Age", y = "Normalized Performance")+
       theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
             axis.title = element_text(face = "bold"),
             legend.title = element_text(face = "bold"),
@@ -974,14 +1060,14 @@ server <- function(input, output) {
   
   output$club_ui_4_3 <- renderUI({
     clubs_filtered <- season.data_4_3() %>% filter(country == input$country_4_3) %>% select(club)
-    selectInput("club", "Club:", choices = unique(clubs_filtered))
+    selectInput("club_predict", "Club:", choices = unique(clubs_filtered))
   })
   
   df_top_5_pred_dealing_clubs <- reactiveVal()
   selected_club <- reactiveVal()
   
   output$prediction_graph <- renderVisNetwork({
-    req(input$club)
+    req(input$club_predict)
     
     season_filtered <- season.data_4_3() %>% 
       select(c("dealing_club", "club", "name"))
@@ -1020,9 +1106,9 @@ server <- function(input, output) {
     
     # Filter edges to only include those with selected club as target --------------
     df.predicted.edges <- df.predicted.edges[df.predicted.edges$club == 
-                                               input$club, ]
+                                               input$club_predict, ]
     df.predicted.edges <- df.predicted.edges[df.predicted.edges$dealing_club != 
-                                               input$club, ]
+                                               input$club_predict, ]
     
     # Keep only the relevant columns -----------------------------------------------
     df.predicted.edges <- subset(df.predicted.edges,
@@ -1046,7 +1132,7 @@ server <- function(input, output) {
     E(g.test)$weight <- df.top.5.pred.dealing.clubs$transfer_prob
     
     # Set vertex colors for chosen club and dealing clubs
-    V(g.test)$color <- ifelse(V(g.test)$name == input$club, "red", "blue")
+    V(g.test)$color <- ifelse(V(g.test)$name == input$club_predict, "red", "blue")
     
     # Create nodes data frame
     nodes <- data.frame(id = V(g.test)$name, 
@@ -1096,7 +1182,7 @@ server <- function(input, output) {
   })
   
   output$table_title <- renderUI({
-    h4(table_title())
+    h3(table_title())
   })
   
   # Observe the selected club from the prediction_graph and update the selected_club reactive variable
