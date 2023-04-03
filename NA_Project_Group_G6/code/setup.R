@@ -1,0 +1,1491 @@
+# ------------------------------------------------------------------------------
+# 
+# Title:        Exploring European Football Club Transfers since 1992
+#
+# Authors:      Florian Preiss (54385), Leon Kahrig (55584), 
+#               Lilian Felmayer (54750), Maximilian Jagiello (53525), 
+#               Hanna Baeuchle (53279)
+#
+# Date:         17-03-2023
+#
+# Course:       Network Analytics
+# Supervisor:   Prof. Rodrigo Belo
+# Assignment:   Group Project Shiny App
+# Group:        G6
+#
+# File:         Setup
+# 
+#               This file contains all the code for data preprocessing and
+#               transformation.
+#
+# ------------------------------------------------------------------------------
+
+
+# Import libraries -------------------------------------------------------------
+library(dplyr)
+
+
+# Load data --------------------------------------------------------------------
+
+# Link to github repo
+url_base <- "https://raw.githubusercontent.com/"
+repo_owner <- "emordonez/"
+repo_name <- "transfermarkt-transfers/"
+data_path <- "master/data/"
+
+url <- paste0(url_base, repo_owner, repo_name, data_path)
+
+# Load data from github
+
+## Germany
+df.germany.1992 <- read.csv(paste0(url, "1992/", "1-bundesliga.csv"))
+df.germany.1993 <- read.csv(paste0(url, "1993/", "1-bundesliga.csv"))
+df.germany.1994 <- read.csv(paste0(url, "1994/", "1-bundesliga.csv"))
+df.germany.1995 <- read.csv(paste0(url, "1995/", "1-bundesliga.csv"))
+df.germany.1996 <- read.csv(paste0(url, "1996/", "1-bundesliga.csv"))
+df.germany.1997 <- read.csv(paste0(url, "1997/", "1-bundesliga.csv"))
+df.germany.1998 <- read.csv(paste0(url, "1998/", "1-bundesliga.csv"))
+df.germany.1999 <- read.csv(paste0(url, "1999/", "1-bundesliga.csv"))
+df.germany.2000 <- read.csv(paste0(url, "2000/", "1-bundesliga.csv"))
+df.germany.2001 <- read.csv(paste0(url, "2001/", "1-bundesliga.csv"))
+df.germany.2002 <- read.csv(paste0(url, "2002/", "1-bundesliga.csv"))
+df.germany.2003 <- read.csv(paste0(url, "2003/", "1-bundesliga.csv"))
+df.germany.2004 <- read.csv(paste0(url, "2004/", "1-bundesliga.csv"))
+df.germany.2005 <- read.csv(paste0(url, "2005/", "1-bundesliga.csv"))
+df.germany.2006 <- read.csv(paste0(url, "2006/", "1-bundesliga.csv"))
+df.germany.2007 <- read.csv(paste0(url, "2007/", "1-bundesliga.csv"))
+df.germany.2008 <- read.csv(paste0(url, "2008/", "1-bundesliga.csv"))
+df.germany.2009 <- read.csv(paste0(url, "2009/", "1-bundesliga.csv"))
+df.germany.2010 <- read.csv(paste0(url, "2010/", "1-bundesliga.csv"))
+df.germany.2011 <- read.csv(paste0(url, "2011/", "1-bundesliga.csv"))
+df.germany.2012 <- read.csv(paste0(url, "2012/", "1-bundesliga.csv"))
+df.germany.2013 <- read.csv(paste0(url, "2013/", "1-bundesliga.csv"))
+df.germany.2014 <- read.csv(paste0(url, "2014/", "1-bundesliga.csv"))
+df.germany.2015 <- read.csv(paste0(url, "2015/", "1-bundesliga.csv"))
+df.germany.2016 <- read.csv(paste0(url, "2016/", "1-bundesliga.csv"))
+df.germany.2017 <- read.csv(paste0(url, "2017/", "1-bundesliga.csv"))
+df.germany.2018 <- read.csv(paste0(url, "2018/", "1-bundesliga.csv"))
+df.germany.2019 <- read.csv(paste0(url, "2019/", "1-bundesliga.csv"))
+df.germany.2020 <- read.csv(paste0(url, "2020/", "1-bundesliga.csv"))
+df.germany.2021 <- read.csv(paste0(url, "2021/", "1-bundesliga.csv"))
+
+df.germany <- rbind(df.germany.1992, df.germany.1993)
+df.germany <- rbind(df.germany, df.germany.1994)
+df.germany <- rbind(df.germany, df.germany.1995)
+df.germany <- rbind(df.germany, df.germany.1996)
+df.germany <- rbind(df.germany, df.germany.1997)
+df.germany <- rbind(df.germany, df.germany.1998)
+df.germany <- rbind(df.germany, df.germany.1999)
+df.germany <- rbind(df.germany, df.germany.2000)
+df.germany <- rbind(df.germany, df.germany.2001)
+df.germany <- rbind(df.germany, df.germany.2002)
+df.germany <- rbind(df.germany, df.germany.2003)
+df.germany <- rbind(df.germany, df.germany.2004)
+df.germany <- rbind(df.germany, df.germany.2005)
+df.germany <- rbind(df.germany, df.germany.2006)
+df.germany <- rbind(df.germany, df.germany.2007)
+df.germany <- rbind(df.germany, df.germany.2008)
+df.germany <- rbind(df.germany, df.germany.2009)
+df.germany <- rbind(df.germany, df.germany.2010)
+df.germany <- rbind(df.germany, df.germany.2011)
+df.germany <- rbind(df.germany, df.germany.2012)
+df.germany <- rbind(df.germany, df.germany.2013)
+df.germany <- rbind(df.germany, df.germany.2014)
+df.germany <- rbind(df.germany, df.germany.2015)
+df.germany <- rbind(df.germany, df.germany.2016)
+df.germany <- rbind(df.germany, df.germany.2017)
+df.germany <- rbind(df.germany, df.germany.2018)
+df.germany <- rbind(df.germany, df.germany.2019)
+df.germany <- rbind(df.germany, df.germany.2020)
+df.germany <- rbind(df.germany, df.germany.2021)
+
+
+## Spain
+df.spain.1992 <- read.csv(paste0(url, "1992/", "laliga.csv"))
+df.spain.1993 <- read.csv(paste0(url, "1993/", "laliga.csv"))
+df.spain.1994 <- read.csv(paste0(url, "1994/", "laliga.csv"))
+df.spain.1995 <- read.csv(paste0(url, "1995/", "laliga.csv"))
+df.spain.1996 <- read.csv(paste0(url, "1996/", "laliga.csv"))
+df.spain.1997 <- read.csv(paste0(url, "1997/", "laliga.csv"))
+df.spain.1998 <- read.csv(paste0(url, "1998/", "laliga.csv"))
+df.spain.1999 <- read.csv(paste0(url, "1999/", "laliga.csv"))
+df.spain.2000 <- read.csv(paste0(url, "2000/", "laliga.csv"))
+df.spain.2001 <- read.csv(paste0(url, "2001/", "laliga.csv"))
+df.spain.2002 <- read.csv(paste0(url, "2002/", "laliga.csv"))
+df.spain.2003 <- read.csv(paste0(url, "2003/", "laliga.csv"))
+df.spain.2004 <- read.csv(paste0(url, "2004/", "laliga.csv"))
+df.spain.2005 <- read.csv(paste0(url, "2005/", "laliga.csv"))
+df.spain.2006 <- read.csv(paste0(url, "2006/", "laliga.csv"))
+df.spain.2007 <- read.csv(paste0(url, "2007/", "laliga.csv"))
+df.spain.2008 <- read.csv(paste0(url, "2008/", "laliga.csv"))
+df.spain.2009 <- read.csv(paste0(url, "2009/", "laliga.csv"))
+df.spain.2010 <- read.csv(paste0(url, "2010/", "laliga.csv"))
+df.spain.2011 <- read.csv(paste0(url, "2011/", "laliga.csv"))
+df.spain.2012 <- read.csv(paste0(url, "2012/", "laliga.csv"))
+df.spain.2013 <- read.csv(paste0(url, "2013/", "laliga.csv"))
+df.spain.2014 <- read.csv(paste0(url, "2014/", "laliga.csv"))
+df.spain.2015 <- read.csv(paste0(url, "2015/", "laliga.csv"))
+df.spain.2016 <- read.csv(paste0(url, "2016/", "laliga.csv"))
+df.spain.2017 <- read.csv(paste0(url, "2017/", "laliga.csv"))
+df.spain.2018 <- read.csv(paste0(url, "2018/", "laliga.csv"))
+df.spain.2019 <- read.csv(paste0(url, "2019/", "laliga.csv"))
+df.spain.2020 <- read.csv(paste0(url, "2020/", "laliga.csv"))
+df.spain.2021 <- read.csv(paste0(url, "2021/", "laliga.csv"))
+
+df.spain <- rbind(df.spain.1992, df.spain.1993)
+df.spain <- rbind(df.spain, df.spain.1994)
+df.spain <- rbind(df.spain, df.spain.1995)
+df.spain <- rbind(df.spain, df.spain.1996)
+df.spain <- rbind(df.spain, df.spain.1997)
+df.spain <- rbind(df.spain, df.spain.1998)
+df.spain <- rbind(df.spain, df.spain.1999)
+df.spain <- rbind(df.spain, df.spain.2000)
+df.spain <- rbind(df.spain, df.spain.2001)
+df.spain <- rbind(df.spain, df.spain.2002)
+df.spain <- rbind(df.spain, df.spain.2003)
+df.spain <- rbind(df.spain, df.spain.2004)
+df.spain <- rbind(df.spain, df.spain.2005)
+df.spain <- rbind(df.spain, df.spain.2006)
+df.spain <- rbind(df.spain, df.spain.2007)
+df.spain <- rbind(df.spain, df.spain.2008)
+df.spain <- rbind(df.spain, df.spain.2009)
+df.spain <- rbind(df.spain, df.spain.2010)
+df.spain <- rbind(df.spain, df.spain.2011)
+df.spain <- rbind(df.spain, df.spain.2012)
+df.spain <- rbind(df.spain, df.spain.2013)
+df.spain <- rbind(df.spain, df.spain.2014)
+df.spain <- rbind(df.spain, df.spain.2015)
+df.spain <- rbind(df.spain, df.spain.2016)
+df.spain <- rbind(df.spain, df.spain.2017)
+df.spain <- rbind(df.spain, df.spain.2018)
+df.spain <- rbind(df.spain, df.spain.2019)
+df.spain <- rbind(df.spain, df.spain.2020)
+df.spain <- rbind(df.spain, df.spain.2021)
+
+
+## Italy
+df.italy.1992 <- read.csv(paste0(url, "1992/", "serie-a.csv"))
+df.italy.1993 <- read.csv(paste0(url, "1993/", "serie-a.csv"))
+df.italy.1994 <- read.csv(paste0(url, "1994/", "serie-a.csv"))
+df.italy.1995 <- read.csv(paste0(url, "1995/", "serie-a.csv"))
+df.italy.1996 <- read.csv(paste0(url, "1996/", "serie-a.csv"))
+df.italy.1997 <- read.csv(paste0(url, "1997/", "serie-a.csv"))
+df.italy.1998 <- read.csv(paste0(url, "1998/", "serie-a.csv"))
+df.italy.1999 <- read.csv(paste0(url, "1999/", "serie-a.csv"))
+df.italy.2000 <- read.csv(paste0(url, "2000/", "serie-a.csv"))
+df.italy.2001 <- read.csv(paste0(url, "2001/", "serie-a.csv"))
+df.italy.2002 <- read.csv(paste0(url, "2002/", "serie-a.csv"))
+df.italy.2003 <- read.csv(paste0(url, "2003/", "serie-a.csv"))
+df.italy.2004 <- read.csv(paste0(url, "2004/", "serie-a.csv"))
+df.italy.2005 <- read.csv(paste0(url, "2005/", "serie-a.csv"))
+df.italy.2006 <- read.csv(paste0(url, "2006/", "serie-a.csv"))
+df.italy.2007 <- read.csv(paste0(url, "2007/", "serie-a.csv"))
+df.italy.2008 <- read.csv(paste0(url, "2008/", "serie-a.csv"))
+df.italy.2009 <- read.csv(paste0(url, "2009/", "serie-a.csv"))
+df.italy.2010 <- read.csv(paste0(url, "2010/", "serie-a.csv"))
+df.italy.2011 <- read.csv(paste0(url, "2011/", "serie-a.csv"))
+df.italy.2012 <- read.csv(paste0(url, "2012/", "serie-a.csv"))
+df.italy.2013 <- read.csv(paste0(url, "2013/", "serie-a.csv"))
+df.italy.2014 <- read.csv(paste0(url, "2014/", "serie-a.csv"))
+df.italy.2015 <- read.csv(paste0(url, "2015/", "serie-a.csv"))
+df.italy.2016 <- read.csv(paste0(url, "2016/", "serie-a.csv"))
+df.italy.2017 <- read.csv(paste0(url, "2017/", "serie-a.csv"))
+df.italy.2018 <- read.csv(paste0(url, "2018/", "serie-a.csv"))
+df.italy.2019 <- read.csv(paste0(url, "2019/", "serie-a.csv"))
+df.italy.2020 <- read.csv(paste0(url, "2020/", "serie-a.csv"))
+df.italy.2021 <- read.csv(paste0(url, "2021/", "serie-a.csv"))
+
+df.italy <- rbind(df.italy.1992, df.italy.1993)
+df.italy <- rbind(df.italy, df.italy.1994)
+df.italy <- rbind(df.italy, df.italy.1995)
+df.italy <- rbind(df.italy, df.italy.1996)
+df.italy <- rbind(df.italy, df.italy.1997)
+df.italy <- rbind(df.italy, df.italy.1998)
+df.italy <- rbind(df.italy, df.italy.1999)
+df.italy <- rbind(df.italy, df.italy.2000)
+df.italy <- rbind(df.italy, df.italy.2001)
+df.italy <- rbind(df.italy, df.italy.2002)
+df.italy <- rbind(df.italy, df.italy.2003)
+df.italy <- rbind(df.italy, df.italy.2004)
+df.italy <- rbind(df.italy, df.italy.2005)
+df.italy <- rbind(df.italy, df.italy.2006)
+df.italy <- rbind(df.italy, df.italy.2007)
+df.italy <- rbind(df.italy, df.italy.2008)
+df.italy <- rbind(df.italy, df.italy.2009)
+df.italy <- rbind(df.italy, df.italy.2010)
+df.italy <- rbind(df.italy, df.italy.2011)
+df.italy <- rbind(df.italy, df.italy.2012)
+df.italy <- rbind(df.italy, df.italy.2013)
+df.italy <- rbind(df.italy, df.italy.2014)
+df.italy <- rbind(df.italy, df.italy.2015)
+df.italy <- rbind(df.italy, df.italy.2016)
+df.italy <- rbind(df.italy, df.italy.2017)
+df.italy <- rbind(df.italy, df.italy.2018)
+df.italy <- rbind(df.italy, df.italy.2019)
+df.italy <- rbind(df.italy, df.italy.2020)
+df.italy <- rbind(df.italy, df.italy.2021)
+
+
+## Netherlands
+df.netherlands.1992 <- read.csv(paste0(url, "1992/", "eredivisie.csv"))
+df.netherlands.1993 <- read.csv(paste0(url, "1993/", "eredivisie.csv"))
+df.netherlands.1994 <- read.csv(paste0(url, "1994/", "eredivisie.csv"))
+df.netherlands.1995 <- read.csv(paste0(url, "1995/", "eredivisie.csv"))
+df.netherlands.1996 <- read.csv(paste0(url, "1996/", "eredivisie.csv"))
+df.netherlands.1997 <- read.csv(paste0(url, "1997/", "eredivisie.csv"))
+df.netherlands.1998 <- read.csv(paste0(url, "1998/", "eredivisie.csv"))
+df.netherlands.1999 <- read.csv(paste0(url, "1999/", "eredivisie.csv"))
+df.netherlands.2000 <- read.csv(paste0(url, "2000/", "eredivisie.csv"))
+df.netherlands.2001 <- read.csv(paste0(url, "2001/", "eredivisie.csv"))
+df.netherlands.2002 <- read.csv(paste0(url, "2002/", "eredivisie.csv"))
+df.netherlands.2003 <- read.csv(paste0(url, "2003/", "eredivisie.csv"))
+df.netherlands.2004 <- read.csv(paste0(url, "2004/", "eredivisie.csv"))
+df.netherlands.2005 <- read.csv(paste0(url, "2005/", "eredivisie.csv"))
+df.netherlands.2006 <- read.csv(paste0(url, "2006/", "eredivisie.csv"))
+df.netherlands.2007 <- read.csv(paste0(url, "2007/", "eredivisie.csv"))
+df.netherlands.2008 <- read.csv(paste0(url, "2008/", "eredivisie.csv"))
+df.netherlands.2009 <- read.csv(paste0(url, "2009/", "eredivisie.csv"))
+df.netherlands.2010 <- read.csv(paste0(url, "2010/", "eredivisie.csv"))
+df.netherlands.2011 <- read.csv(paste0(url, "2011/", "eredivisie.csv"))
+df.netherlands.2012 <- read.csv(paste0(url, "2012/", "eredivisie.csv"))
+df.netherlands.2013 <- read.csv(paste0(url, "2013/", "eredivisie.csv"))
+df.netherlands.2014 <- read.csv(paste0(url, "2014/", "eredivisie.csv"))
+df.netherlands.2015 <- read.csv(paste0(url, "2015/", "eredivisie.csv"))
+df.netherlands.2016 <- read.csv(paste0(url, "2016/", "eredivisie.csv"))
+df.netherlands.2017 <- read.csv(paste0(url, "2017/", "eredivisie.csv"))
+df.netherlands.2018 <- read.csv(paste0(url, "2018/", "eredivisie.csv"))
+df.netherlands.2019 <- read.csv(paste0(url, "2019/", "eredivisie.csv"))
+df.netherlands.2020 <- read.csv(paste0(url, "2020/", "eredivisie.csv"))
+df.netherlands.2021 <- read.csv(paste0(url, "2021/", "eredivisie.csv"))
+
+df.netherlands <- rbind(df.netherlands.1992, df.netherlands.1993)
+df.netherlands <- rbind(df.netherlands, df.netherlands.1994)
+df.netherlands <- rbind(df.netherlands, df.netherlands.1995)
+df.netherlands <- rbind(df.netherlands, df.netherlands.1996)
+df.netherlands <- rbind(df.netherlands, df.netherlands.1997)
+df.netherlands <- rbind(df.netherlands, df.netherlands.1998)
+df.netherlands <- rbind(df.netherlands, df.netherlands.1999)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2000)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2001)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2002)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2003)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2004)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2005)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2006)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2007)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2008)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2009)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2010)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2011)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2012)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2013)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2014)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2015)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2016)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2017)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2018)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2019)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2020)
+df.netherlands <- rbind(df.netherlands, df.netherlands.2021)
+
+
+## Portugal
+df.portugal.1992 <- read.csv(paste0(url, "1992/", "primeira-liga.csv"))
+df.portugal.1993 <- read.csv(paste0(url, "1993/", "primeira-liga.csv"))
+df.portugal.1994 <- read.csv(paste0(url, "1994/", "primeira-liga.csv"))
+df.portugal.1995 <- read.csv(paste0(url, "1995/", "primeira-liga.csv"))
+df.portugal.1996 <- read.csv(paste0(url, "1996/", "primeira-liga.csv"))
+df.portugal.1997 <- read.csv(paste0(url, "1997/", "primeira-liga.csv"))
+df.portugal.1998 <- read.csv(paste0(url, "1998/", "primeira-liga.csv"))
+df.portugal.1999 <- read.csv(paste0(url, "1999/", "primeira-liga.csv"))
+df.portugal.2000 <- read.csv(paste0(url, "2000/", "primeira-liga.csv"))
+df.portugal.2001 <- read.csv(paste0(url, "2001/", "primeira-liga.csv"))
+df.portugal.2002 <- read.csv(paste0(url, "2002/", "primeira-liga.csv"))
+df.portugal.2003 <- read.csv(paste0(url, "2003/", "primeira-liga.csv"))
+df.portugal.2004 <- read.csv(paste0(url, "2004/", "primeira-liga.csv"))
+df.portugal.2005 <- read.csv(paste0(url, "2005/", "primeira-liga.csv"))
+df.portugal.2006 <- read.csv(paste0(url, "2006/", "primeira-liga.csv"))
+df.portugal.2007 <- read.csv(paste0(url, "2007/", "primeira-liga.csv"))
+df.portugal.2008 <- read.csv(paste0(url, "2008/", "primeira-liga.csv"))
+df.portugal.2009 <- read.csv(paste0(url, "2009/", "primeira-liga.csv"))
+df.portugal.2010 <- read.csv(paste0(url, "2010/", "primeira-liga.csv"))
+df.portugal.2011 <- read.csv(paste0(url, "2011/", "primeira-liga.csv"))
+df.portugal.2012 <- read.csv(paste0(url, "2012/", "primeira-liga.csv"))
+df.portugal.2013 <- read.csv(paste0(url, "2013/", "primeira-liga.csv"))
+df.portugal.2014 <- read.csv(paste0(url, "2014/", "primeira-liga.csv"))
+df.portugal.2015 <- read.csv(paste0(url, "2015/", "primeira-liga.csv"))
+df.portugal.2016 <- read.csv(paste0(url, "2016/", "primeira-liga.csv"))
+df.portugal.2017 <- read.csv(paste0(url, "2017/", "primeira-liga.csv"))
+df.portugal.2018 <- read.csv(paste0(url, "2018/", "primeira-liga.csv"))
+df.portugal.2019 <- read.csv(paste0(url, "2019/", "primeira-liga.csv"))
+df.portugal.2020 <- read.csv(paste0(url, "2020/", "primeira-liga.csv"))
+df.portugal.2021 <- read.csv(paste0(url, "2021/", "primeira-liga.csv"))
+
+df.portugal <- rbind(df.portugal.1992, df.portugal.1993)
+df.portugal <- rbind(df.portugal, df.portugal.1994)
+df.portugal <- rbind(df.portugal, df.portugal.1995)
+df.portugal <- rbind(df.portugal, df.portugal.1996)
+df.portugal <- rbind(df.portugal, df.portugal.1997)
+df.portugal <- rbind(df.portugal, df.portugal.1998)
+df.portugal <- rbind(df.portugal, df.portugal.1999)
+df.portugal <- rbind(df.portugal, df.portugal.2000)
+df.portugal <- rbind(df.portugal, df.portugal.2001)
+df.portugal <- rbind(df.portugal, df.portugal.2002)
+df.portugal <- rbind(df.portugal, df.portugal.2003)
+df.portugal <- rbind(df.portugal, df.portugal.2004)
+df.portugal <- rbind(df.portugal, df.portugal.2005)
+df.portugal <- rbind(df.portugal, df.portugal.2006)
+df.portugal <- rbind(df.portugal, df.portugal.2007)
+df.portugal <- rbind(df.portugal, df.portugal.2008)
+df.portugal <- rbind(df.portugal, df.portugal.2009)
+df.portugal <- rbind(df.portugal, df.portugal.2010)
+df.portugal <- rbind(df.portugal, df.portugal.2011)
+df.portugal <- rbind(df.portugal, df.portugal.2012)
+df.portugal <- rbind(df.portugal, df.portugal.2013)
+df.portugal <- rbind(df.portugal, df.portugal.2014)
+df.portugal <- rbind(df.portugal, df.portugal.2015)
+df.portugal <- rbind(df.portugal, df.portugal.2016)
+df.portugal <- rbind(df.portugal, df.portugal.2017)
+df.portugal <- rbind(df.portugal, df.portugal.2018)
+df.portugal <- rbind(df.portugal, df.portugal.2019)
+df.portugal <- rbind(df.portugal, df.portugal.2020)
+df.portugal <- rbind(df.portugal, df.portugal.2021)
+
+
+## France
+df.france.1992 <- read.csv(paste0(url, "1992/", "ligue-1.csv"))
+df.france.1993 <- read.csv(paste0(url, "1993/", "ligue-1.csv"))
+df.france.1994 <- read.csv(paste0(url, "1994/", "ligue-1.csv"))
+df.france.1995 <- read.csv(paste0(url, "1995/", "ligue-1.csv"))
+df.france.1996 <- read.csv(paste0(url, "1996/", "ligue-1.csv"))
+df.france.1997 <- read.csv(paste0(url, "1997/", "ligue-1.csv"))
+df.france.1998 <- read.csv(paste0(url, "1998/", "ligue-1.csv"))
+df.france.1999 <- read.csv(paste0(url, "1999/", "ligue-1.csv"))
+df.france.2000 <- read.csv(paste0(url, "2000/", "ligue-1.csv"))
+df.france.2001 <- read.csv(paste0(url, "2001/", "ligue-1.csv"))
+df.france.2002 <- read.csv(paste0(url, "2002/", "ligue-1.csv"))
+df.france.2003 <- read.csv(paste0(url, "2003/", "ligue-1.csv"))
+df.france.2004 <- read.csv(paste0(url, "2004/", "ligue-1.csv"))
+df.france.2005 <- read.csv(paste0(url, "2005/", "ligue-1.csv"))
+df.france.2006 <- read.csv(paste0(url, "2006/", "ligue-1.csv"))
+df.france.2007 <- read.csv(paste0(url, "2007/", "ligue-1.csv"))
+df.france.2008 <- read.csv(paste0(url, "2008/", "ligue-1.csv"))
+df.france.2009 <- read.csv(paste0(url, "2009/", "ligue-1.csv"))
+df.france.2010 <- read.csv(paste0(url, "2010/", "ligue-1.csv"))
+df.france.2011 <- read.csv(paste0(url, "2011/", "ligue-1.csv"))
+df.france.2012 <- read.csv(paste0(url, "2012/", "ligue-1.csv"))
+df.france.2013 <- read.csv(paste0(url, "2013/", "ligue-1.csv"))
+df.france.2014 <- read.csv(paste0(url, "2014/", "ligue-1.csv"))
+df.france.2015 <- read.csv(paste0(url, "2015/", "ligue-1.csv"))
+df.france.2016 <- read.csv(paste0(url, "2016/", "ligue-1.csv"))
+df.france.2017 <- read.csv(paste0(url, "2017/", "ligue-1.csv"))
+df.france.2018 <- read.csv(paste0(url, "2018/", "ligue-1.csv"))
+df.france.2019 <- read.csv(paste0(url, "2019/", "ligue-1.csv"))
+df.france.2020 <- read.csv(paste0(url, "2020/", "ligue-1.csv"))
+df.france.2021 <- read.csv(paste0(url, "2021/", "ligue-1.csv"))
+
+df.france <- rbind(df.france.1992, df.france.1993)
+df.france <- rbind(df.france, df.france.1994)
+df.france <- rbind(df.france, df.france.1995)
+df.france <- rbind(df.france, df.france.1996)
+df.france <- rbind(df.france, df.france.1997)
+df.france <- rbind(df.france, df.france.1998)
+df.france <- rbind(df.france, df.france.1999)
+df.france <- rbind(df.france, df.france.2000)
+df.france <- rbind(df.france, df.france.2001)
+df.france <- rbind(df.france, df.france.2002)
+df.france <- rbind(df.france, df.france.2003)
+df.france <- rbind(df.france, df.france.2004)
+df.france <- rbind(df.france, df.france.2005)
+df.france <- rbind(df.france, df.france.2006)
+df.france <- rbind(df.france, df.france.2007)
+df.france <- rbind(df.france, df.france.2008)
+df.france <- rbind(df.france, df.france.2009)
+df.france <- rbind(df.france, df.france.2010)
+df.france <- rbind(df.france, df.france.2011)
+df.france <- rbind(df.france, df.france.2012)
+df.france <- rbind(df.france, df.france.2013)
+df.france <- rbind(df.france, df.france.2014)
+df.france <- rbind(df.france, df.france.2015)
+df.france <- rbind(df.france, df.france.2016)
+df.france <- rbind(df.france, df.france.2017)
+df.france <- rbind(df.france, df.france.2018)
+df.france <- rbind(df.france, df.france.2019)
+df.france <- rbind(df.france, df.france.2020)
+df.france <- rbind(df.france, df.france.2021)
+
+
+## United Kingdom
+df.england.1992 <- read.csv(paste0(url, "1992/", "premier-league.csv"))
+df.england.1993 <- read.csv(paste0(url, "1993/", "premier-league.csv"))
+df.england.1994 <- read.csv(paste0(url, "1994/", "premier-league.csv"))
+df.england.1995 <- read.csv(paste0(url, "1995/", "premier-league.csv"))
+df.england.1996 <- read.csv(paste0(url, "1996/", "premier-league.csv"))
+df.england.1997 <- read.csv(paste0(url, "1997/", "premier-league.csv"))
+df.england.1998 <- read.csv(paste0(url, "1998/", "premier-league.csv"))
+df.england.1999 <- read.csv(paste0(url, "1999/", "premier-league.csv"))
+df.england.2000 <- read.csv(paste0(url, "2000/", "premier-league.csv"))
+df.england.2001 <- read.csv(paste0(url, "2001/", "premier-league.csv"))
+df.england.2002 <- read.csv(paste0(url, "2002/", "premier-league.csv"))
+df.england.2003 <- read.csv(paste0(url, "2003/", "premier-league.csv"))
+df.england.2004 <- read.csv(paste0(url, "2004/", "premier-league.csv"))
+df.england.2005 <- read.csv(paste0(url, "2005/", "premier-league.csv"))
+df.england.2006 <- read.csv(paste0(url, "2006/", "premier-league.csv"))
+df.england.2007 <- read.csv(paste0(url, "2007/", "premier-league.csv"))
+df.england.2008 <- read.csv(paste0(url, "2008/", "premier-league.csv"))
+df.england.2009 <- read.csv(paste0(url, "2009/", "premier-league.csv"))
+df.england.2010 <- read.csv(paste0(url, "2010/", "premier-league.csv"))
+df.england.2011 <- read.csv(paste0(url, "2011/", "premier-league.csv"))
+df.england.2012 <- read.csv(paste0(url, "2012/", "premier-league.csv"))
+df.england.2013 <- read.csv(paste0(url, "2013/", "premier-league.csv"))
+df.england.2014 <- read.csv(paste0(url, "2014/", "premier-league.csv"))
+df.england.2015 <- read.csv(paste0(url, "2015/", "premier-league.csv"))
+df.england.2016 <- read.csv(paste0(url, "2016/", "premier-league.csv"))
+df.england.2017 <- read.csv(paste0(url, "2017/", "premier-league.csv"))
+df.england.2018 <- read.csv(paste0(url, "2018/", "premier-league.csv"))
+df.england.2019 <- read.csv(paste0(url, "2019/", "premier-league.csv"))
+df.england.2020 <- read.csv(paste0(url, "2020/", "premier-league.csv"))
+df.england.2021 <- read.csv(paste0(url, "2021/", "premier-league.csv"))
+
+df.england <- rbind(df.england.1992, df.england.1993)
+df.england <- rbind(df.england, df.england.1994)
+df.england <- rbind(df.england, df.england.1995)
+df.england <- rbind(df.england, df.england.1996)
+df.england <- rbind(df.england, df.england.1997)
+df.england <- rbind(df.england, df.england.1998)
+df.england <- rbind(df.england, df.england.1999)
+df.england <- rbind(df.england, df.england.2000)
+df.england <- rbind(df.england, df.england.2001)
+df.england <- rbind(df.england, df.england.2002)
+df.england <- rbind(df.england, df.england.2003)
+df.england <- rbind(df.england, df.england.2004)
+df.england <- rbind(df.england, df.england.2005)
+df.england <- rbind(df.england, df.england.2006)
+df.england <- rbind(df.england, df.england.2007)
+df.england <- rbind(df.england, df.england.2008)
+df.england <- rbind(df.england, df.england.2009)
+df.england <- rbind(df.england, df.england.2010)
+df.england <- rbind(df.england, df.england.2011)
+df.england <- rbind(df.england, df.england.2012)
+df.england <- rbind(df.england, df.england.2013)
+df.england <- rbind(df.england, df.england.2014)
+df.england <- rbind(df.england, df.england.2015)
+df.england <- rbind(df.england, df.england.2016)
+df.england <- rbind(df.england, df.england.2017)
+df.england <- rbind(df.england, df.england.2018)
+df.england <- rbind(df.england, df.england.2019)
+df.england <- rbind(df.england, df.england.2020)
+df.england <- rbind(df.england, df.england.2021)
+
+
+## Russia
+df.russia.1992 <- read.csv(paste0(url, "1992/", "premier-liga.csv"))
+df.russia.1993 <- read.csv(paste0(url, "1993/", "premier-liga.csv"))
+df.russia.1994 <- read.csv(paste0(url, "1994/", "premier-liga.csv"))
+df.russia.1995 <- read.csv(paste0(url, "1995/", "premier-liga.csv"))
+df.russia.1996 <- read.csv(paste0(url, "1996/", "premier-liga.csv"))
+df.russia.1997 <- read.csv(paste0(url, "1997/", "premier-liga.csv"))
+df.russia.1998 <- read.csv(paste0(url, "1998/", "premier-liga.csv"))
+df.russia.1999 <- read.csv(paste0(url, "1999/", "premier-liga.csv"))
+df.russia.2000 <- read.csv(paste0(url, "2000/", "premier-liga.csv"))
+df.russia.2001 <- read.csv(paste0(url, "2001/", "premier-liga.csv"))
+df.russia.2002 <- read.csv(paste0(url, "2002/", "premier-liga.csv"))
+df.russia.2003 <- read.csv(paste0(url, "2003/", "premier-liga.csv"))
+df.russia.2004 <- read.csv(paste0(url, "2004/", "premier-liga.csv"))
+df.russia.2005 <- read.csv(paste0(url, "2005/", "premier-liga.csv"))
+df.russia.2006 <- read.csv(paste0(url, "2006/", "premier-liga.csv"))
+df.russia.2007 <- read.csv(paste0(url, "2007/", "premier-liga.csv"))
+df.russia.2008 <- read.csv(paste0(url, "2008/", "premier-liga.csv"))
+df.russia.2009 <- read.csv(paste0(url, "2009/", "premier-liga.csv"))
+df.russia.2010 <- read.csv(paste0(url, "2010/", "premier-liga.csv"))
+df.russia.2011 <- read.csv(paste0(url, "2011/", "premier-liga.csv"))
+df.russia.2012 <- read.csv(paste0(url, "2012/", "premier-liga.csv"))
+df.russia.2013 <- read.csv(paste0(url, "2013/", "premier-liga.csv"))
+df.russia.2014 <- read.csv(paste0(url, "2014/", "premier-liga.csv"))
+df.russia.2015 <- read.csv(paste0(url, "2015/", "premier-liga.csv"))
+df.russia.2016 <- read.csv(paste0(url, "2016/", "premier-liga.csv"))
+df.russia.2017 <- read.csv(paste0(url, "2017/", "premier-liga.csv"))
+df.russia.2018 <- read.csv(paste0(url, "2018/", "premier-liga.csv"))
+df.russia.2019 <- read.csv(paste0(url, "2019/", "premier-liga.csv"))
+df.russia.2020 <- read.csv(paste0(url, "2020/", "premier-liga.csv"))
+df.russia.2021 <- read.csv(paste0(url, "2021/", "premier-liga.csv"))
+
+df.russia <- rbind(df.russia.1992, df.russia.1993)
+df.russia <- rbind(df.russia, df.russia.1994)
+df.russia <- rbind(df.russia, df.russia.1995)
+df.russia <- rbind(df.russia, df.russia.1996)
+df.russia <- rbind(df.russia, df.russia.1997)
+df.russia <- rbind(df.russia, df.russia.1998)
+df.russia <- rbind(df.russia, df.russia.1999)
+df.russia <- rbind(df.russia, df.russia.2000)
+df.russia <- rbind(df.russia, df.russia.2001)
+df.russia <- rbind(df.russia, df.russia.2002)
+df.russia <- rbind(df.russia, df.russia.2003)
+df.russia <- rbind(df.russia, df.russia.2004)
+df.russia <- rbind(df.russia, df.russia.2005)
+df.russia <- rbind(df.russia, df.russia.2006)
+df.russia <- rbind(df.russia, df.russia.2007)
+df.russia <- rbind(df.russia, df.russia.2008)
+df.russia <- rbind(df.russia, df.russia.2009)
+df.russia <- rbind(df.russia, df.russia.2010)
+df.russia <- rbind(df.russia, df.russia.2011)
+df.russia <- rbind(df.russia, df.russia.2012)
+df.russia <- rbind(df.russia, df.russia.2013)
+df.russia <- rbind(df.russia, df.russia.2014)
+df.russia <- rbind(df.russia, df.russia.2015)
+df.russia <- rbind(df.russia, df.russia.2016)
+df.russia <- rbind(df.russia, df.russia.2017)
+df.russia <- rbind(df.russia, df.russia.2018)
+df.russia <- rbind(df.russia, df.russia.2019)
+df.russia <- rbind(df.russia, df.russia.2020)
+df.russia <- rbind(df.russia, df.russia.2021)
+
+
+## Belgium
+df.belgium.1992 <- read.csv(paste0(url, "1992/", "jupiler-pro-league.csv"))
+df.belgium.1993 <- read.csv(paste0(url, "1993/", "jupiler-pro-league.csv"))
+df.belgium.1994 <- read.csv(paste0(url, "1994/", "jupiler-pro-league.csv"))
+df.belgium.1995 <- read.csv(paste0(url, "1995/", "jupiler-pro-league.csv"))
+df.belgium.1996 <- read.csv(paste0(url, "1996/", "jupiler-pro-league.csv"))
+df.belgium.1997 <- read.csv(paste0(url, "1997/", "jupiler-pro-league.csv"))
+df.belgium.1998 <- read.csv(paste0(url, "1998/", "jupiler-pro-league.csv"))
+df.belgium.1999 <- read.csv(paste0(url, "1999/", "jupiler-pro-league.csv"))
+df.belgium.2000 <- read.csv(paste0(url, "2000/", "jupiler-pro-league.csv"))
+df.belgium.2001 <- read.csv(paste0(url, "2001/", "jupiler-pro-league.csv"))
+df.belgium.2002 <- read.csv(paste0(url, "2002/", "jupiler-pro-league.csv"))
+df.belgium.2003 <- read.csv(paste0(url, "2003/", "jupiler-pro-league.csv"))
+df.belgium.2004 <- read.csv(paste0(url, "2004/", "jupiler-pro-league.csv"))
+df.belgium.2005 <- read.csv(paste0(url, "2005/", "jupiler-pro-league.csv"))
+df.belgium.2006 <- read.csv(paste0(url, "2006/", "jupiler-pro-league.csv"))
+df.belgium.2007 <- read.csv(paste0(url, "2007/", "jupiler-pro-league.csv"))
+df.belgium.2008 <- read.csv(paste0(url, "2008/", "jupiler-pro-league.csv"))
+df.belgium.2009 <- read.csv(paste0(url, "2009/", "jupiler-pro-league.csv"))
+df.belgium.2010 <- read.csv(paste0(url, "2010/", "jupiler-pro-league.csv"))
+df.belgium.2011 <- read.csv(paste0(url, "2011/", "jupiler-pro-league.csv"))
+df.belgium.2012 <- read.csv(paste0(url, "2012/", "jupiler-pro-league.csv"))
+df.belgium.2013 <- read.csv(paste0(url, "2013/", "jupiler-pro-league.csv"))
+df.belgium.2014 <- read.csv(paste0(url, "2014/", "jupiler-pro-league.csv"))
+df.belgium.2015 <- read.csv(paste0(url, "2015/", "jupiler-pro-league.csv"))
+df.belgium.2016 <- read.csv(paste0(url, "2016/", "jupiler-pro-league.csv"))
+df.belgium.2017 <- read.csv(paste0(url, "2017/", "jupiler-pro-league.csv"))
+df.belgium.2018 <- read.csv(paste0(url, "2018/", "jupiler-pro-league.csv"))
+df.belgium.2019 <- read.csv(paste0(url, "2019/", "jupiler-pro-league.csv"))
+df.belgium.2020 <- read.csv(paste0(url, "2020/", "jupiler-pro-league.csv"))
+df.belgium.2021 <- read.csv(paste0(url, "2021/", "jupiler-pro-league.csv"))
+
+df.belgium <- rbind(df.belgium.1992, df.belgium.1993)
+df.belgium <- rbind(df.belgium, df.belgium.1994)
+df.belgium <- rbind(df.belgium, df.belgium.1995)
+df.belgium <- rbind(df.belgium, df.belgium.1996)
+df.belgium <- rbind(df.belgium, df.belgium.1997)
+df.belgium <- rbind(df.belgium, df.belgium.1998)
+df.belgium <- rbind(df.belgium, df.belgium.1999)
+df.belgium <- rbind(df.belgium, df.belgium.2000)
+df.belgium <- rbind(df.belgium, df.belgium.2001)
+df.belgium <- rbind(df.belgium, df.belgium.2002)
+df.belgium <- rbind(df.belgium, df.belgium.2003)
+df.belgium <- rbind(df.belgium, df.belgium.2004)
+df.belgium <- rbind(df.belgium, df.belgium.2005)
+df.belgium <- rbind(df.belgium, df.belgium.2006)
+df.belgium <- rbind(df.belgium, df.belgium.2007)
+df.belgium <- rbind(df.belgium, df.belgium.2008)
+df.belgium <- rbind(df.belgium, df.belgium.2009)
+df.belgium <- rbind(df.belgium, df.belgium.2010)
+df.belgium <- rbind(df.belgium, df.belgium.2011)
+df.belgium <- rbind(df.belgium, df.belgium.2012)
+df.belgium <- rbind(df.belgium, df.belgium.2013)
+df.belgium <- rbind(df.belgium, df.belgium.2014)
+df.belgium <- rbind(df.belgium, df.belgium.2015)
+df.belgium <- rbind(df.belgium, df.belgium.2016)
+df.belgium <- rbind(df.belgium, df.belgium.2017)
+df.belgium <- rbind(df.belgium, df.belgium.2018)
+df.belgium <- rbind(df.belgium, df.belgium.2019)
+df.belgium <- rbind(df.belgium, df.belgium.2020)
+df.belgium <- rbind(df.belgium, df.belgium.2021)
+
+
+# Scotland
+df.scotland.1992 <- read.csv(paste0(url, "1992/", "scottish-premiership.csv"))
+df.scotland.1993 <- read.csv(paste0(url, "1993/", "scottish-premiership.csv"))
+df.scotland.1994 <- read.csv(paste0(url, "1994/", "scottish-premiership.csv"))
+df.scotland.1995 <- read.csv(paste0(url, "1995/", "scottish-premiership.csv"))
+df.scotland.1996 <- read.csv(paste0(url, "1996/", "scottish-premiership.csv"))
+df.scotland.1997 <- read.csv(paste0(url, "1997/", "scottish-premiership.csv"))
+df.scotland.1998 <- read.csv(paste0(url, "1998/", "scottish-premiership.csv"))
+df.scotland.1999 <- read.csv(paste0(url, "1999/", "scottish-premiership.csv"))
+df.scotland.2000 <- read.csv(paste0(url, "2000/", "scottish-premiership.csv"))
+df.scotland.2001 <- read.csv(paste0(url, "2001/", "scottish-premiership.csv"))
+df.scotland.2002 <- read.csv(paste0(url, "2002/", "scottish-premiership.csv"))
+df.scotland.2003 <- read.csv(paste0(url, "2003/", "scottish-premiership.csv"))
+df.scotland.2004 <- read.csv(paste0(url, "2004/", "scottish-premiership.csv"))
+df.scotland.2005 <- read.csv(paste0(url, "2005/", "scottish-premiership.csv"))
+df.scotland.2006 <- read.csv(paste0(url, "2006/", "scottish-premiership.csv"))
+df.scotland.2007 <- read.csv(paste0(url, "2007/", "scottish-premiership.csv"))
+df.scotland.2008 <- read.csv(paste0(url, "2008/", "scottish-premiership.csv"))
+df.scotland.2009 <- read.csv(paste0(url, "2009/", "scottish-premiership.csv"))
+df.scotland.2010 <- read.csv(paste0(url, "2010/", "scottish-premiership.csv"))
+df.scotland.2011 <- read.csv(paste0(url, "2011/", "scottish-premiership.csv"))
+df.scotland.2012 <- read.csv(paste0(url, "2012/", "scottish-premiership.csv"))
+df.scotland.2013 <- read.csv(paste0(url, "2013/", "scottish-premiership.csv"))
+df.scotland.2014 <- read.csv(paste0(url, "2014/", "scottish-premiership.csv"))
+df.scotland.2015 <- read.csv(paste0(url, "2015/", "scottish-premiership.csv"))
+df.scotland.2016 <- read.csv(paste0(url, "2016/", "scottish-premiership.csv"))
+df.scotland.2017 <- read.csv(paste0(url, "2017/", "scottish-premiership.csv"))
+df.scotland.2018 <- read.csv(paste0(url, "2018/", "scottish-premiership.csv"))
+df.scotland.2019 <- read.csv(paste0(url, "2019/", "scottish-premiership.csv"))
+df.scotland.2020 <- read.csv(paste0(url, "2020/", "scottish-premiership.csv"))
+df.scotland.2021 <- read.csv(paste0(url, "2021/", "scottish-premiership.csv"))
+
+df.scotland <- rbind(df.scotland.1992, df.scotland.1993)
+df.scotland <- rbind(df.scotland, df.scotland.1994)
+df.scotland <- rbind(df.scotland, df.scotland.1995)
+df.scotland <- rbind(df.scotland, df.scotland.1996)
+df.scotland <- rbind(df.scotland, df.scotland.1997)
+df.scotland <- rbind(df.scotland, df.scotland.1998)
+df.scotland <- rbind(df.scotland, df.scotland.1999)
+df.scotland <- rbind(df.scotland, df.scotland.2000)
+df.scotland <- rbind(df.scotland, df.scotland.2001)
+df.scotland <- rbind(df.scotland, df.scotland.2002)
+df.scotland <- rbind(df.scotland, df.scotland.2003)
+df.scotland <- rbind(df.scotland, df.scotland.2004)
+df.scotland <- rbind(df.scotland, df.scotland.2005)
+df.scotland <- rbind(df.scotland, df.scotland.2006)
+df.scotland <- rbind(df.scotland, df.scotland.2007)
+df.scotland <- rbind(df.scotland, df.scotland.2008)
+df.scotland <- rbind(df.scotland, df.scotland.2009)
+df.scotland <- rbind(df.scotland, df.scotland.2010)
+df.scotland <- rbind(df.scotland, df.scotland.2011)
+df.scotland <- rbind(df.scotland, df.scotland.2012)
+df.scotland <- rbind(df.scotland, df.scotland.2013)
+df.scotland <- rbind(df.scotland, df.scotland.2014)
+df.scotland <- rbind(df.scotland, df.scotland.2015)
+df.scotland <- rbind(df.scotland, df.scotland.2016)
+df.scotland <- rbind(df.scotland, df.scotland.2017)
+df.scotland <- rbind(df.scotland, df.scotland.2018)
+df.scotland <- rbind(df.scotland, df.scotland.2019)
+df.scotland <- rbind(df.scotland, df.scotland.2020)
+df.scotland <- rbind(df.scotland, df.scotland.2021)
+
+
+# Data cleaning ----------------------------------------------------------------
+
+# Add country column
+df.germany$country      <- "Germany"
+df.spain$country        <- "Spain"
+df.italy$country        <- "Italy"
+df.netherlands$country  <- "Netherlands"
+df.portugal$country     <- "Portugal"
+df.france$country       <- "France"
+df.england$country      <- "United Kingdom"
+df.russia$country       <- "Russia"
+df.belgium$country      <- "Belgium"
+df.scotland$country     <- "Scotland"
+
+# Creating new data frame containing all data
+df.scrape <- rbind(df.belgium, df.england)
+df.scrape <- rbind(df.scrape, df.france)
+df.scrape <- rbind(df.scrape, df.germany)
+df.scrape <- rbind(df.scrape, df.italy)
+df.scrape <- rbind(df.scrape, df.netherlands)
+df.scrape <- rbind(df.scrape, df.portugal)
+df.scrape <- rbind(df.scrape, df.russia)
+df.scrape <- rbind(df.scrape, df.scotland)
+df.scrape <- rbind(df.scrape, df.spain)
+
+# Rename countries across dataframe
+df.scrape[df.scrape == "Bosnia-Herzegovina"] <- "Bosnia and Herzegovina"
+df.scrape[df.scrape == "Cote d’Ivoire"] <- "Côte d’Ivoire"
+df.scrape[df.scrape == "England"] <- "United Kingdom"
+df.scrape[df.scrape == "Hongkong"] <- "Hong Kong"
+df.scrape[df.scrape == "Korea, North"] <- "North Korea"
+df.scrape[df.scrape == "Korea, South"] <- "South Korea"
+df.scrape[df.scrape == "Neukaledonien"] <- "New Caledonia"
+df.scrape[df.scrape == "North Macedonia"] <- "Macedonia [FYROM]"
+df.scrape[df.scrape == "Northern Ireland"] <- "United Kingdom"
+df.scrape[df.scrape == "Scotland"] <- "United Kingdom"
+df.scrape[df.scrape == "St. Kitts & Nevis"] <- "Saint Kitts and Nevis"
+df.scrape[df.scrape == "The Gambia"] <- "Gambia"
+df.scrape[df.scrape == "Wales"] <- "United Kingdom"
+
+# Load country data set
+file_base <- "../data/"
+file_name <- "world_country_and_usa_states_latitude_and_longitude_values.csv"
+file_path <- paste0(file_base, file_name)
+
+df.countries <- read.csv(file_path)
+
+df.countries <- subset(df.countries, select = c(country, latitude, longitude))
+
+df.scrape <- left_join(df.scrape, df.countries, 
+                       by = join_by(country == country))
+df.scrape <- df.scrape %>% rename(country_lat = latitude, 
+                                  country_lon = longitude)
+
+df.scrape <- left_join(df.scrape, df.countries, 
+                       by = join_by(dealing_country == country))
+df.scrape <- df.scrape %>% rename(dealing_country_lat = latitude, 
+                                  dealing_country_lon = longitude)
+
+# Drop unimportant columns
+df.scrape <- subset(df.scrape, select = -c(short_pos, is_loan, loan_status))
+col.order <- c("season", "window", "country", "country_lat", "country_lon", 
+               "league", "club", "movement", "dealing_club", "dealing_country", 
+               "dealing_country_lat", "dealing_country_lon",  "name", "age", 
+               "nationality", "position", "market_value", "fee")
+df.scrape <- df.scrape[, col.order]
+
+# Drop unimportant rows
+df.scrape <- df.scrape[!(df.scrape$dealing_country == ""), ]
+df.scrape <- df.scrape[!(is.na(df.scrape$dealing_country)), ]
+df.scrape <- df.scrape[!(df.scrape$dealing_club == ""), ]
+df.scrape <- df.scrape[!(is.na(df.scrape$dealing_club)), ]
+df.scrape <- df.scrape[!(df.scrape$dealing_club == "Ban" | 
+                           df.scrape$dealing_club == "Career break" | 
+                           df.scrape$dealing_club == "Own Youth" |
+                           df.scrape$dealing_club == "Retired" |
+                           df.scrape$dealing_club == "Unknown" |
+                           df.scrape$dealing_club == "Without Club"),]
+
+# Replace all leading and trailing whitespace 
+df.scrape$club <- trimws(df.scrape$club)
+df.scrape$dealing_club <- trimws(df.scrape$dealing_club)
+
+# Removing rows with missing value
+df.scrape <- na.omit(df.scrape)
+
+# Create uniform club names across dataframe
+
+## Germany
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Bay. Leverkusen"] <- "Bayer 04 Leverkusen"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "1.FC K'lautern"] <- "1.FC Kaiserslautern"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Bor. M'gladbach"] <- "Borussia Mönchengladbach"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Bor. Dortmund"] <- "Borussia Dortmund"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Alem. Aachen"] <- "Alemannia Aachen"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Werder Bremen"] <- "SV Werder Bremen"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "TSG Hoffenheim"] <- "TSG 1899 Hoffenheim"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Union Berlin"] <- "1.FC Union Berlin"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Arm. Bielefeld"] <- "Arminia Bielefeld"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "SC Paderborn"] <- "SC Paderborn 07"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "F. Düsseldorf"] <- "Fortuna Düsseldorf"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "E. Frankfurt"] <- "Eintracht Frankfurt"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Energie Cottbus"] <- "FC Energie Cottbus"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "FC Ingolstadt"] <- "FC Ingolstadt 04"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Greuther Fürth"] <- "SpVgg Greuther Fürth"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "FC Bayern"] <- "Bayern Munich"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "E. Braunschweig"] <- "Eintracht Braunschweig"
+
+## United Kingdom
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Blackburn"] <- "Blackburn Rovers"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Arsenal"] <- "Arsenal FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Chelsea"] <- "Chelsea FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Liverpool"] <- "Liverpool FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Man City"] <- "Manchester City"
+df.scrape$dealing_club[df.scrape$dealing_club == "Man Utd"] <- "Manchester United"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Birmingham"] <- "Birmingham City"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Blackpool"] <- "Blackpool FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Bolton"] <- "Bolton Wanderers"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Bournemouth"] <- "AFC Bournemouth"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Brighton"] <- "Brighton & Hove Albion"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Brentford"] <- "Brentford FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Burnley"] <- "Burnley FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Cardiff"] <- "Cardiff City"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Celtic"] <- "Celtic FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Charlton"] <- "Charlton Athletic"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Derby"] <- "Derby County"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Dundee United FC"] <- "Dundee United"
+df.scrape$club[df.scrape$club == "Dundee FC"] <- "Dundee United"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Dunfermline A."] <- "Dunfermline Athletic FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Everton"] <- "Everton FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Falkirk"] <- "Falkirk FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Fulham"] <- "Fulham FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Gretna"] <- "Gretna FC (aufgel.)"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Hamilton Acad."] <- "Hamilton Academical FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Heart of Midl."] <- "Heart of Midlothian FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Huddersfield"] <- "Huddersfield Town"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Inverness CT"] <- "Inverness Caledonian Thistle FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Leeds"] <- "Leeds United"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Leicester"] <- "Leicester City"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Middlesbrough"] <- "Middlesbrough FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Newcastle"] <- "Newcastle United"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Norwich"] <- "Norwich City"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Partick Thistle"] <- "Partick Thistle FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Portsmouth FC"] <- "Portsmouth"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "QPR"] <- "Queens Park Rangers"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Queen's Park"] <- "Queens Park Rangers"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Rangers"] <- "Rangers FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Ross County"] <- "Ross County FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Reading"] <- "Reading FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Sheff Utd"] <- "Sheffield United"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Southampton"] <- "Southampton FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "St. Johnstone"] <- "St. Johnstone FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "St. Mirren"] <- "St. Mirren FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Sunderland"] <- "Sunderland FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Swansea"] <- "Swansea City"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Spurs"] <- "Tottenham Hotspur"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Watford"] <- "Watford FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "West Brom"] <- "West Bromwich Albion"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "West Ham"] <- "West Ham United"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Wigan"] <- "Wigan Athletic"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Wolves"] <- "Wolverhampton Wanderers"
+
+## France
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Monaco"] <- "AS Monaco"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "AS Nancy"] <- "AS Nancy-Lorraine"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Saint-Étienne"] <- "AS Saint-Étienne"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "AC Arles"] <- "Athlétic Club Arlésien"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Clermont Foot"] <- "Clermont Foot 63"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "CS Sedan"] <- "CS Sedan-Ardennes"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Dijon"] <- "Dijon FCO"
+df.scrape$club[df.scrape$club == "ESTAC Troyes"] <- "ES Troyes AC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Évian"] <- "FC Évian Thonon Gaillard"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "G. Bordeaux"] <- "FC Girondins Bordeaux"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "FC Istres"] <- "FC Istres Ouest Provence"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Istres FC"] <- "FC Istres Ouest Provence"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Guingamp"] <- "EA Guingamp"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Le Mans UC 72"] <- "Le Mans Union Club 72"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Le Mans FC"] <- "Le Mans Union Club 72"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Lens"] <- "RC Lens"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Paris SG"] <- "Paris Saint-Germain"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Montpellier"] <- "Montpellier HSC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Marseille"] <- "Olympique Marseille"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Stade Rennais"] <- "Stade Rennais FC"
+df.scrape$club[df.scrape$club == "Stade Brest 29"] <- "Stade Brestois 29"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Stade Brestois"] <- "Stade Brestois 29"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "R. Strasbourg"] <- "RC Strasbourg Alsace"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Thonon Évian"] <- "FC Évian Thonon Gaillard"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Toulouse"] <- "FC Toulouse"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Toulouse Font."] <- "FC Toulouse"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Troyes"] <- "ES Troyes AC"
+
+## Italy
+df.scrape$dealing_club[df.scrape$dealing_club == "Cesena"] <- "AC Cesena"
+df.scrape$dealing_club[df.scrape$dealing_club == "Inter"] <- "Inter Milan"
+df.scrape$club[df.scrape$club == "FC Internazionale"] <- "Inter Milan"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Venezia"] <- "AC Venezia 1907"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "SSC Venezia"] <- "Venezia FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Fiorentina"] <- "ACF Fiorentina"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Bari"] <- "AS Bari"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Livorno"] <- "AS Livorno"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Ascoli"] <- "Ascoli Calcio 1898"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Benevento"] <- "Benevento Calcio"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Bologna"] <- "Bologna FC 1909"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Brescia"] <- "Brescia Calcio"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Catania"] <- "Calcio Catania"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Carpi"] <- "Carpi FC 1909"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Pescara"] <- "Delfino Pescara 1936"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Crotone"] <- "FC Crotone"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Frosinone"] <- "Frosinone Calcio"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Genoa"] <- "Genoa CFC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Juventus"] <- "Juventus FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Novara"] <- "Novara Calcio 1908"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Parma"] <- "Parma Calcio 1913"
+df.scrape$club[df.scrape$club == "Parma FC"] <- "Parma Calcio 1913"
+df.scrape$club[df.scrape$club == "SPAL"] <- "SPAL 2013"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Reggina"] <- "Reggina Calcio"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Siena"] <- "Robur Siena"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Spezia"] <- "Spezia Calcio"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Lazio"] <- "SS Lazio"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Napoli"] <- "SSC Napoli"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Torino"] <- "Torino FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Treviso"] <- "Treviso FBC 1993"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Sampdoria"] <- "UC Sampdoria"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Udinese"] <- "Udinese Calcio"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Lecce"] <- "US Lecce"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Palermo"] <- "US Palermo"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Salernitana"] <- "US Salernitana 1919"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Salerno"] <- "US Salernitana 1919"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Sassuolo"] <- "US Sassuolo"
+
+## Spain
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Athletic"] <- "Athletic Bilbao"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Bilbao Athletic"] <- "Athletic Bilbao"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Alavés"] <- "Deportivo Alavés"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Dep. La Coruña"] <- "Deportivo de La Coruña"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Espanyol"] <- "RCD Espanyol Barcelona"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Barcelona"] <- "FC Barcelona"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Getafe"] <- "Getafe CF"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Gimnàstic"] <- "Gimnàstic de Tarragona"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Girona"] <- "Girona FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Granada 74 CF"] <- "Granada CF"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Levante"] <- "Levante UD"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Racing"] <- "Racing Santander"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Real Betis"] <- "Real Betis Balompié"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Real Murcia"] <- "Real Murcia CF"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Real Valladolid"] <- "Real Valladolid CF"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Recr. Huelva"] <- "Recreativo Huelva"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Valencia"] <- "Valencia CF"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Villarreal"] <- "Villarreal CF"
+
+## Belgium
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Club Brugge"] <- "Club Brugge KV"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Germ. Beerschot"] <- "Germinal Beerschot Antwerpen"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Zulte Waregem"] <- "SV Zulte Waregem"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "White Star"] <- "WhiteStar Woluwe"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Mouscron"] <- "Excelsior Mouscron"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Royal Antwerp"] <- "Royal Antwerp FC"
+
+## Netherlands
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Ajax"] <- "Ajax Amsterdam"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "De Graafschap"] <- "De Graafschap Doetinchem"
+df.scrape$club[df.scrape$club == 
+                 "Go Ahead Eagles"] <- "Go Ahead Eagles Deventer"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Roda JC"] <- "Roda JC Kerkrade"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Heerenveen"] <- "SC Heerenveen"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Excelsior"] <- "SBV Excelsior Rotterdam"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Vitesse"] <- "Vitesse Arnhem"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Willem II"] <- "Willem II Tilburg"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Sparta R."] <- "Sparta Rotterdam"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Twente FC"] <- "Twente Enschede FC"
+
+## Portugal
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Coimbra"] <- "Académica Coimbra"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Boavista"] <- "Boavista FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Feirense"] <- "CD Feirense"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Nacional"] <- "CD Nacional"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Santa Clara"] <- "CD Santa Clara"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Tondela"] <- "CD Tondela"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Trofense"] <- "CD Trofense"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "União Madeira"] <- "CF União Madeira"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Marítimo"] <- "CS Marítimo"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Arouca"] <- "FC Arouca"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Famalicão"] <- "FC Famalicão"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Paços Ferreira"] <- "FC Paços de Ferreira"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Penafiel"] <- "FC Penafiel"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Vizela"] <- "FC Vizela"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Chaves"] <- "GD Chaves"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Estoril Praia"] <- "GD Estoril Praia"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Gil Vicente"] <- "Gil Vicente FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Leixões"] <- "Leixões SC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Moreirense"] <- "Moreirense FC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Naval"] <- "Naval 1º de Maio"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Portimonense"] <- "Portimonense Futebol SAD"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Beira-Mar"] <- "SC Beira-Mar"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Braga"] <- "SC Braga"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Farense"] <- "SC Farense"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Olhanense"] <- "SC Olhanense"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Benfica"] <- "SL Benfica"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Leiria"] <- "União de Leiria"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Vit. Guimarães"] <- "Vitória Guimarães SC"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Vitória Setúbal"] <- "Vitória Setúbal FC"
+
+## Russia
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Anzhi"] <- "Anzhi Makhachkala"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Sochi"] <- "FC Sochi"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Loko Moscow"] <- "Lokomotiv Moscow"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Zenit S-Pb"] <- "Zenit St. Petersburg"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Nizhny Novgorod"] <- "FK Nizhny Novgorod"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Ural"] <- "Ural Yekaterinburg"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Rostov"] <- "FK Rostov"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Khimki"] <- "FK Khimki"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "KS Samara"] <- "Krylya Sovetov Samara"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Ufa"] <- "FK Ufa"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Tosno"] <- "FK Tosno"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Tambov"] <- "FK Tambov"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Orenburg"] <- "FK Orenburg"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Krasnodar"] <- "FK Krasnodar"
+df.scrape$dealing_club[df.scrape$dealing_club == 
+                         "Volga NN"] <- "Volga Nizhniy Novgorod"
+
+# Save df.scrape
+#save(df.scrape, file = "../data/football-scrape.RData")
+write.csv(df.scrape, "../data/football-scrape.csv", row.names = FALSE)
+
+
+# Preprocessing ----------------------------------------------------------------
+
+# Load previously saved df.scrape
+#df.scrape <- read.csv(file = '../data/football-scrape.csv')
+
+# Subset dataframe to select only players moving into a club
+df.football.in <- subset(df.scrape, movement == "in", 
+                         select = c("season", "window", "country", 
+                                    "country_lat", "country_lon", "club", 
+                                    "dealing_country", "dealing_country_lat", 
+                                    "dealing_country_lon", "dealing_club",
+                                    "movement", "name", "age", "nationality", 
+                                    "position", "market_value", "fee"))
+
+# Create index column with club, dealing_club, name, and season columns
+df.football.in$index <- paste(df.football.in$club, 
+                              df.football.in$dealing_club, df.football.in$name, 
+                              df.football.in$season, sep = " ")
+
+# Subset dataframe to select only players moving out of a club
+df.football.out <- subset(df.scrape, movement == "out", 
+                          select = c("season", "window", "dealing_country",
+                                     "dealing_country_lat", 
+                                     "dealing_country_lon", "dealing_club", 
+                                     "country", "country_lat", "country_lon", 
+                                     "club", "movement", "name", "age", 
+                                     "nationality", "position", "market_value", 
+                                     "fee"))
+
+# Rename columns in df.football.out to match the column names in df.football.in 
+names(df.football.out)[names(df.football.out) == 
+                         "dealing_country"] <- "country2"
+names(df.football.out)[names(df.football.out) == 
+                         "dealing_country_lat"] <- "country_lat2"
+names(df.football.out)[names(df.football.out) == 
+                         "dealing_country_lon"] <- "country_lon2"
+names(df.football.out)[names(df.football.out) == 
+                         "dealing_club"] <- "club2"
+names(df.football.out)[names(df.football.out) == 
+                         "club"] <- "dealing_club"
+names(df.football.out)[names(df.football.out) == 
+                         "country"] <- "dealing_country"
+names(df.football.out)[names(df.football.out) == 
+                         "country_lat"] <- "dealing_country_lat"
+names(df.football.out)[names(df.football.out) == 
+                         "country_lon"] <- "dealing_country_lon"
+names(df.football.out)[names(df.football.out) == 
+                         "country2"] <- "country"
+names(df.football.out)[names(df.football.out) == 
+                         "country_lat2"] <- "country_lat"
+names(df.football.out)[names(df.football.out) == 
+                         "country_lon2"] <- "country_lon"
+names(df.football.out)[names(df.football.out) == 
+                         "club2"] <- "club"
+
+# Change movement column values to "in"
+df.football.out$movement <- "in"
+
+# Create index column with club, dealing_club, name, and season columns
+df.football.out$index <- paste(df.football.out$club, 
+                               df.football.out$dealing_club, 
+                               df.football.out$name, 
+                               df.football.out$season, sep = " ")
+
+# Merge df.football.in and df.football.out into one dataframe
+df.football <- rbind(df.football.in, df.football.out)
+
+# Drop duplicates in the "index" column of df.football
+df.football <- df.football[!duplicated(df.football$index), ]
+
+# Delete rows containing false information
+
+## Jack Grealish
+df.football <- subset(df.football, 
+                      !(name == "Jack Grealish" & 
+                          club == "Manchester United"))
+df.football <- subset(df.football, 
+                      !(name == "Jack Grealish" & 
+                          dealing_club == "Manchester United"))
+df.football$dealing_club <- ifelse(df.football$name == "Jack Grealish" & 
+                                     df.football$club == "Manchester City",
+                                   "Aston Villa",
+                                   df.football$dealing_club)
+df.football$club <- ifelse(df.football$name == "Jack Grealish" & 
+                             df.football$dealing_club == 
+                             "Manchester City", "Aston Villa", df.football$club)
+
+## Romelu Lukaku
+df.football <- subset(df.football, 
+                      !(name == "Romelu Lukaku" & 
+                          club == "Chrystal Palace"))
+df.football <- subset(df.football, 
+                      !(name == "Romelu Lukaku" & 
+                          dealing_club == "Chrystal Palace"))
+df.football$club <- ifelse(df.football$name == "Romelu Lukaku" & 
+                             df.football$club == "AC Milan",
+                           "Inter Milan",
+                           df.football$club)
+df.football$dealing_club <- ifelse(df.football$name == "Romelu Lukaku" & 
+                                     df.football$dealing_club == 
+                                     "AC Milan", "Inter Milan", 
+                                   df.football$dealing_club)
+
+## Jadon Sancho
+df.football <- subset(df.football, 
+                      !(name == "Jadon Sancho" & 
+                          club == "Newcastle United"))
+df.football <- subset(df.football, 
+                      !(name == "Jadon Sancho" & 
+                          dealing_club == "Newcastle United"))
+df.football$club <- ifelse(df.football$name == "Jadon Sancho" & 
+                             df.football$club == "VfL Wolfsburg",
+                           "Borussia Dortmund",
+                           df.football$club)
+df.football$dealing_club <- ifelse(df.football$name == "Jadon Sancho" & 
+                                     df.football$dealing_club == 
+                                     "VfL Wolfsburg", "Borussia Dortmund", 
+                                   df.football$dealing_club)
+
+## Lionel Messi
+df.football <- subset(df.football, 
+                      !(name == "Lionel Messi" & 
+                          club == "AS Monaco"))
+df.football <- subset(df.football, 
+                      !(name == "Lionel Messi" & 
+                          dealing_club == "AS Monaco"))
+df.football$club <- ifelse(df.football$name == "Lionel Messi" & 
+                             df.football$club == "Real Madrid",
+                           "FC Barcelona",
+                           df.football$club)
+df.football$dealing_club <- ifelse(df.football$name == "Lionel Messi" & 
+                                     df.football$dealing_club == 
+                                     "Real Madrid", "FC Barcelona", 
+                                   df.football$dealing_club)
+
+## Achraf Hakimi
+df.football <- subset(df.football, 
+                      !(name == "Achraf Hakimi" & 
+                          club == "Paris Saint-Germain"))
+df.football <- subset(df.football, 
+                      !(name == "Achraf Hakimi" & 
+                          dealing_club == "Paris Saint-Germain"))
+df.football$club <- ifelse(df.football$name == "Achraf Hakimi" & 
+                             df.football$club == "AS Monaco",
+                           "Paris Saint-Germain",
+                           df.football$club)
+df.football$dealing_club <- ifelse(df.football$name == "Achraf Hakimi" & 
+                                     df.football$dealing_club == 
+                                     "AS Monaco", "Paris Saint-Germain", 
+                                   df.football$dealing_club)
+
+## Raphaël Varane
+df.football <- subset(df.football, 
+                      !(name == "Raphaël Varane" & 
+                          club == "Manchester United"))
+df.football <- subset(df.football, 
+                      !(name == "Raphaël Varane" & 
+                          dealing_club == "Manchester United"))
+df.football$club <- ifelse(df.football$name == "Raphaël Varane" & 
+                             df.football$club == "Newcastle United",
+                           "Manchester United",
+                           df.football$club)
+df.football$dealing_club <- ifelse(df.football$name == "Raphaël Varane" & 
+                                     df.football$dealing_club == 
+                                     "Newcastle United", "Manchester United", 
+                                   df.football$dealing_club)
+
+## Gianluigi Donnarumma
+df.football <- subset(df.football, 
+                      !(name == "Gianluigi Donnarumma" & 
+                          club == "Paris Saint-Germain"))
+df.football <- subset(df.football, 
+                      !(name == "Gianluigi Donnarumma" & 
+                          dealing_club == "Paris Saint-Germain"))
+df.football$club <- ifelse(df.football$name == "Gianluigi Donnarumma" & 
+                             df.football$club == "AS Monaco",
+                           "Paris Saint-Germain",
+                           df.football$club)
+df.football$dealing_club <- ifelse(df.football$name == "Gianluigi Donnarumma" & 
+                                     df.football$dealing_club == 
+                                     "AS Monaco", "Paris Saint-Germain", 
+                                   df.football$dealing_club)
+
+## Dayot Upamecano
+df.football <- subset(df.football, 
+                      !(name == "Dayot Upamecano" & 
+                          club == "RB Leibzig"))
+df.football <- subset(df.football, 
+                      !(name == "Dayot Upamecano" & 
+                          dealing_club == "RB Leibzig"))
+df.football$club <- ifelse(df.football$name == "Dayot Upamecano" & 
+                             df.football$club == "Borussia Dortmund",
+                           "RB Leibzig",
+                           df.football$club)
+df.football$dealing_club <- ifelse(df.football$name == "Dayot Upamecano" & 
+                                     df.football$dealing_club == 
+                                     "Borussia Dortmund", "RB Leibzig", 
+                                   df.football$dealing_club)
+
+## David Alaba
+df.football <- subset(df.football, 
+                      !(name == "David Alaba" & 
+                          club == "Bayern Munich"))
+df.football <- subset(df.football, 
+                      !(name == "David Alaba" & 
+                          dealing_club == "Bayern Munich"))
+df.football$club <- ifelse(df.football$name == "David Alaba" & 
+                             df.football$club == "RB Leipzig",
+                           "Bayern Munich",
+                           df.football$club)
+df.football$dealing_club <- ifelse(df.football$name == "David Alaba" & 
+                                     df.football$dealing_club == 
+                                     "RB Leipzig", "Bayern Munich", 
+                                   df.football$dealing_club)
+
+## Aaron Mokoena
+df.football <- subset(df.football, 
+                      !(name == "Aaron Mokoena" & 
+                          club == "Portsmouth"))
+
+# Delete unlogical rows
+df.football <- subset(df.football, club != dealing_club)
+
+# Create index column with club, dealing_club, name, and season columns
+df.football$index <- paste(df.football$name, df.football$club, 
+                           df.football$season, df.football$movement, sep = " ")
+
+# Identify and remove duplicated rows based on the 'index' column
+df.football <- df.football[!duplicated(df.football$index), ]
+
+# Drop the 'index' column from the dataframe
+df.football$index <- NULL
+
+# Aggregate positions
+df.football <- df.football %>%
+  mutate(position_category = case_when(
+    position %in% c("Goalkeeper") ~ "Goalkeeper",
+    position %in% c("defence", "Left-Back", "Centre-Back", "Right-Back", 
+                    "Sweeper") ~ "Defense",
+    position %in% c("midfield", "Defensive Midfield", "Central Midfield", 
+                    "Right Midfield", "Left Midfield") ~ "Midfield",
+    position %in% c("attack", "Centre-Forward", "Attacking Midfield", 
+                    "Second Striker", "Left Winger", "Right Winger") ~ "Attack",
+    TRUE ~ "Other"
+  ))
+
+# Create performance column
+df.football$performance <- with(df.football, 
+                                ifelse(fee == 0, market_value / (1 * age), 
+                                       market_value / fee / age))
+
+# Compute mean and standard deviation of performance column
+mean.performance <- mean(df.football$performance)
+sd.performance <- sd(df.football$performance)
+
+# Create a normalized column
+df.football$normalized_performance <- (
+  df.football$performance - mean.performance) / sd.performance
+
+# Compute the min and max of the performance column
+min.performance <- min(df.football$performance)
+max.performance <- max(df.football$performance)
+
+# Create a normalized column
+df.football$normalized_performance <- 
+  (df.football$performance - min.performance) / (max.performance - 
+                                                   min.performance)
+
+# Round normalized performance to 4 decimal places
+df.football$normalized_performance <- round(df.football$normalized_performance, 
+                                            4)
+
+# Drop unimportant columns 
+df.football$window <- NULL 
+df.football$movement <- NULL
+df.football$performance <- NULL
+
+# Reorder columns
+df.football <- df.football %>%
+  select(name, age, nationality, position, position_category, 
+         normalized_performance, market_value, fee, club, country, country_lat, 
+         country_lon, dealing_club, dealing_country, dealing_country_lat, 
+         dealing_country_lon, season)
+
+# Keep only data from 2004 onwards
+df.football <- df.football %>%
+  filter(season >= 2004)
+
+# Check for missing values in each column
+na.counts <- apply(df.football, 2, function(x) sum(is.na(x)))
+
+# Print the number of NAs in each column
+print(na.counts)
+
+
+# Save data --------------------------------------------------------------------
+#save(df.football, file = "../data/football-transfers.RData")
+write.csv(df.football, "../data/football-transfers.csv", row.names = FALSE)
